@@ -3,7 +3,11 @@ import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
   darkMode: ["class"],
-  content: [],
+  content: [
+    "./src/components/**/*.{html,js}",
+    "./src/**/*.{html,js,tsx}",
+    "./index.html",
+  ],
   theme: {
     extend: {
       borderRadius: {
