@@ -1,9 +1,5 @@
-import { Dashboard } from "./pages/playground"
-
-export const App = () => {
-  return (
-    <Dashboard/>
-  );
-};
+function App() {
+  return <>MIST AI</>;
+}
 
 export default App;
