@@ -318,7 +318,7 @@ export function Dashboard() {
           <div className="ml-auto gap-1.5 space-x-4">
             <ModeToggle />
             <Button variant="outline" size="sm" className="text-sm">
-              <Share className="size-3.5" />
+              <Share className="size-3.5 mr-2" />
               Share
             </Button>
           </div>
