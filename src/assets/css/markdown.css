@@ -1,0 +1,136 @@
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: revert;
+  font-weight: revert;
+}
+
+blockquote,
+dl,
+dd,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+hr,
+figure,
+p,
+pre {
+  margin: inherit;
+}
+
+/* TMP TW Fixes. */
+/* TODO: Either file a TW bug or adjust TW config properly. */
+.prose {
+  max-width: 40vw;
+}
+.prose
+  :where(blockquote):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  border-left-color: inherit;
+}
+.prose
+  :where(ul > li):not(
+    :where([class~="not-prose"], [class~="not-prose"] *)
+  )::marker {
+  color: inherit;
+}
+.prose :where(hr):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
+  border-color: inherit;
+}
+
+.prose.prose-fw {
+  max-width: fit-content;
+}
+
+/* Custom classes. */
+.break-words {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Default markdown syntax highlighting theme - androidstudio. */
+pre {
+  background-color: #1f2937;
+  padding: 1rem;
+  font-size: 14px;
+  color: white;
+  border-radius: 10px;
+}
+pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 1em;
+}
+
+code.hljs {
+  padding: 3px 5px;
+}
+
+.hljs {
+  color: #a9b7c6;
+  background: #282b2e;
+  @include scrollbar-styles();
+}
+
+.hljs-bullet,
+.hljs-literal,
+.hljs-number,
+.hljs-symbol {
+  color: #6897bb;
+}
+
+.hljs-deletion,
+.hljs-keyword,
+.hljs-selector-tag {
+  color: #cc7832;
+}
+
+.hljs-link,
+.hljs-template-variable,
+.hljs-variable {
+  color: #629755;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: grey;
+}
+
+.hljs-meta {
+  color: #bbb529;
+}
+
+.hljs-addition,
+.hljs-attribute,
+.hljs-string {
+  color: #6a8759;
+}
+
+.hljs-section,
+.hljs-title,
+.hljs-type {
+  color: #ffc66d;
+}
+
+.hljs-name,
+.hljs-selector-class,
+.hljs-selector-id {
+  color: #e8bf6a;
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: 700;
+}
+
+li {
+  margin: 20px 0
+}

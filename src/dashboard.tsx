@@ -15,8 +15,11 @@ import {
   SquareUser,
   Triangle,
   Turtle,
+  Brain,
 } from "lucide-react";
-
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +45,31 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ModeToggle } from "./components/mode-toggle";
+
+const markdown = `
+If the solution isn't working as expected, let's troubleshoot and improve it step by step.
+
+1. **Check if *react-markdown* is installed correctly:**
+   Ensure that the *react-markdown* package is installed. You can verify this by checking your *package.json* or running:
+
+   ~~~bash
+   npm list react-markdown
+   ~~~
+
+   If it's not installed, you can reinstall it with:
+   ~~~bash
+   npm install react-markdown
+   ~~~
+
+2. **Update the component with correct structure:**
+   Make sure your React component is properly structured to handle the system messages as Markdown:
+
+   ~~~jsx
+   import React, { useState } from 'react';
+   import ReactMarkdown from 'react-markdown';
+`;
 
 export const description =
   "An AI playground with a sidebar navigation and a main content area. The playground has a header with a settings drawer and a share button. The sidebar has navigation links and a user menu. The main content area shows a form to configure the model and messages.";
@@ -287,14 +315,13 @@ export function Dashboard() {
               </form>
             </DrawerContent>
           </Drawer>
-          <Button
-            variant="outline"
-            size="sm"
-            className="ml-auto gap-1.5 text-sm"
-          >
-            <Share className="size-3.5" />
-            Share
-          </Button>
+          <div className="ml-auto gap-1.5 space-x-4">
+            <ModeToggle />
+            <Button variant="outline" size="sm" className="text-sm">
+              <Share className="size-3.5 mr-2" />
+              Share
+            </Button>
+          </div>
         </header>
         <main className="grid flex-1 gap-4 overflow-auto p-4 md:grid-cols-2 lg:grid-cols-3">
           <div
@@ -410,10 +437,58 @@ export function Dashboard() {
               </fieldset>
             </form>
           </div>
-          <div className="relative flex h-full min-h-[50vh] flex-col rounded-xl bg-muted/50 p-4 lg:col-span-2">
-            <Badge variant="outline" className="absolute right-3 top-3">
-              Output
-            </Badge>
+          <div className="flex h-full min-h-[50vh] flex-col rounded-xl bg-muted/50 p-4 lg:col-span-2">
+            <div className="chat-block flex flex-col px-5 gap-6">
+              <div className="flex justify-center align-middle">
+                <Badge variant="outline" className="">
+                  today
+                </Badge>
+              </div>
+              <div className="chat-message">
+                <div className="flex align-middle gap-5">
+                  <Avatar className="hidden h-9 w-9 sm:flex">
+                    <AvatarImage src="/avatars/01.png" alt="Avatar" />
+                    <AvatarFallback>ME</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col gap-2 mt-2">
+                    <div className="flex align-middle chat-owner-info">
+                      <p className="text-sm text-primary font-medium mr-2">
+                        Olivia Martin
+                      </p>
+                      <p className="text-sm text-muted-foreground">10:12 AM</p>
+                    </div>
+                    <p className="text-muted-foreground">
+                      Write me a primitive code
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <Separator />
+              <div className="chat-message">
+                <div className="flex align-middle gap-5">
+                  <Avatar className="hidden h-9 w-9 sm:flex">
+                    <AvatarImage src="/avatars/01.png" alt="Avatar" />
+                    <AvatarFallback>
+                      <Brain />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col gap-2 mt-2">
+                    <div className="flex align-middle chat-owner-info">
+                      <p className="text-sm text-primary font-medium mr-2">
+                        MistAI
+                      </p>
+                      <p className="text-sm text-muted-foreground">10:12 AM</p>
+                    </div>
+                    <Markdown
+                      className="space-y-8 max-w-5xl"
+                      remarkPlugins={[remarkGfm]}
+                    >
+                      {markdown}
+                    </Markdown>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div className="flex-1" />
             <form
               className="relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring"
