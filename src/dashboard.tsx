@@ -15,7 +15,7 @@ import {
   SquareUser,
   Triangle,
   Turtle,
-  Brain
+  Brain,
 } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -46,6 +46,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ModeToggle } from "./components/mode-toggle";
 
 const markdown = `
 If the solution isn't working as expected, let's troubleshoot and improve it step by step.
@@ -314,14 +315,13 @@ export function Dashboard() {
               </form>
             </DrawerContent>
           </Drawer>
-          <Button
-            variant="outline"
-            size="sm"
-            className="ml-auto gap-1.5 text-sm"
-          >
-            <Share className="size-3.5" />
-            Share
-          </Button>
+          <div className="ml-auto gap-1.5 space-x-4">
+            <ModeToggle />
+            <Button variant="outline" size="sm" className="text-sm">
+              <Share className="size-3.5" />
+              Share
+            </Button>
+          </div>
         </header>
         <main className="grid flex-1 gap-4 overflow-auto p-4 md:grid-cols-2 lg:grid-cols-3">
           <div
