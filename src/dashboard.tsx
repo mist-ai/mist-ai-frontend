@@ -463,6 +463,7 @@ export function Dashboard() {
                   </div>
                 </div>
               </div>
+              <Separator />
               <div className="chat-message">
                 <div className="flex align-middle gap-5">
                   <Avatar className="hidden h-9 w-9 sm:flex">
