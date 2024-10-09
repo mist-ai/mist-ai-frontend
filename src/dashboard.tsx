@@ -7,7 +7,7 @@ import {
   LifeBuoy,
   Mic,
   Paperclip,
-  Rabbit,
+  Undo2,
   Settings,
   Settings2,
   Share,
@@ -227,7 +227,7 @@ export function Dashboard() {
                       <SelectContent>
                         <SelectItem value="genesis">
                           <div className="flex items-start gap-3 text-muted-foreground">
-                            <Rabbit className="size-5" />
+                            <Undo2 className="size-5" />
                             <div className="grid gap-0.5">
                               <p>
                                 Neural{" "}
@@ -334,23 +334,23 @@ export function Dashboard() {
                   Settings
                 </legend>
                 <div className="grid gap-3">
-                  <Label htmlFor="model">Model</Label>
+                  <Label htmlFor="erm">Expected Return Model</Label>
                   <Select>
                     <SelectTrigger
-                      id="model"
+                      id="erm"
                       className="items-start [&_[data-description]]:hidden"
                     >
                       <SelectValue placeholder="Select a model" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="genesis">
+                      <SelectItem value="mean_historical_return">
                         <div className="flex items-start gap-3 text-muted-foreground">
-                          <Rabbit className="size-5" />
+                          <Undo2 className="size-5" />
                           <div className="grid gap-0.5">
                             <p>
-                              Neural{" "}
+                              Mean Historical{" "}
                               <span className="font-medium text-foreground">
-                                Genesis
+                                Return
                               </span>
                             </p>
                             <p className="text-xs" data-description>
@@ -359,34 +359,66 @@ export function Dashboard() {
                           </div>
                         </div>
                       </SelectItem>
-                      <SelectItem value="explorer">
+                      <SelectItem value="ema_historical_return">
                         <div className="flex items-start gap-3 text-muted-foreground">
-                          <Bird className="size-5" />
+                          <Undo2 className="size-5" />
                           <div className="grid gap-0.5">
                             <p>
-                              Neural{" "}
+                              EMA Historical{" "}
                               <span className="font-medium text-foreground">
-                                Explorer
+                                Return
                               </span>
                             </p>
                             <p className="text-xs" data-description>
-                              Performance and speed for efficiency.
+                              Our fastest model for general use cases.
                             </p>
                           </div>
                         </div>
                       </SelectItem>
-                      <SelectItem value="quantum">
+                      <SelectItem value="capm_return">
                         <div className="flex items-start gap-3 text-muted-foreground">
-                          <Turtle className="size-5" />
+                          <Undo2 className="size-5" />
                           <div className="grid gap-0.5">
                             <p>
-                              Neural{" "}
+                              CAPM{" "}
                               <span className="font-medium text-foreground">
-                                Quantum
+                                Return
                               </span>
                             </p>
                             <p className="text-xs" data-description>
-                              The most powerful model for complex computations.
+                              Our fastest model for general use cases.
+                            </p>
+                          </div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="returns_from_prices">
+                        <div className="flex items-start gap-3 text-muted-foreground">
+                          <Undo2 className="size-5" />
+                          <div className="grid gap-0.5">
+                            <p>
+                              Returns from{" "}
+                              <span className="font-medium text-foreground">
+                                Prices
+                              </span>
+                            </p>
+                            <p className="text-xs" data-description>
+                              Our fastest model for general use cases.
+                            </p>
+                          </div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="prices_from_returns">
+                        <div className="flex items-start gap-3 text-muted-foreground">
+                          <Undo2 className="size-5" />
+                          <div className="grid gap-0.5">
+                            <p>
+                              Prices from{" "}
+                              <span className="font-medium text-foreground">
+                                Return
+                              </span>
+                            </p>
+                            <p className="text-xs" data-description>
+                              Our fastest model for general use cases.
                             </p>
                           </div>
                         </div>
@@ -395,18 +427,145 @@ export function Dashboard() {
                   </Select>
                 </div>
                 <div className="grid gap-3">
-                  <Label htmlFor="temperature">Temperature</Label>
-                  <Input id="temperature" type="number" placeholder="0.4" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-3">
-                    <Label htmlFor="top-p">Top P</Label>
-                    <Input id="top-p" type="number" placeholder="0.7" />
-                  </div>
-                  <div className="grid gap-3">
-                    <Label htmlFor="top-k">Top K</Label>
-                    <Input id="top-k" type="number" placeholder="0.0" />
-                  </div>
+                  <Label htmlFor="rm">Risk Model</Label>
+                  <Select>
+                    <SelectTrigger
+                      id="rm"
+                      className="items-start [&_[data-description]]:hidden"
+                    >
+                      <SelectValue placeholder="Select a model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sample_cov">
+                        <div className="flex items-start gap-3 text-muted-foreground">
+                          <Undo2 className="size-5" />
+                          <div className="grid gap-0.5">
+                            <p>
+                              Simple{" "}
+                              <span className="font-medium text-foreground">
+                                Covariance
+                              </span>
+                            </p>
+                            <p className="text-xs" data-description>
+                              Our fastest model for general use cases.
+                            </p>
+                          </div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="semicovariance">
+                        <div className="flex items-start gap-3 text-muted-foreground">
+                          <Undo2 className="size-5" />
+                          <div className="grid gap-0.5">
+                            <p>
+                              Semi{" "}
+                              <span className="font-medium text-foreground">
+                                Covariance
+                              </span>
+                            </p>
+                            <p className="text-xs" data-description>
+                              Our fastest model for general use cases.
+                            </p>
+                          </div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="exp_cov">
+                        <div className="flex items-start gap-3 text-muted-foreground">
+                          <Undo2 className="size-5" />
+                          <div className="grid gap-0.5">
+                            <p>
+                              Exponentially-weighted{" "}
+                              <span className="font-medium text-foreground">
+                                Covariance
+                              </span>
+                            </p>
+                            <p className="text-xs" data-description>
+                              Our fastest model for general use cases.
+                            </p>
+                          </div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="ledoit_wolf">
+                        <div className="flex items-start gap-3 text-muted-foreground">
+                          <Undo2 className="size-5" />
+                          <div className="grid gap-0.5">
+                            <p>
+                              Ledoit-Wolf{" "}
+                              <span className="font-medium text-foreground">
+                                Covariance
+                              </span>
+                            </p>
+                            <p className="text-xs" data-description>
+                              Our fastest model for general use cases.
+                            </p>
+                          </div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="ledoit_wolf_constant_variance">
+                        <div className="flex items-start gap-3 text-muted-foreground">
+                          <Undo2 className="size-5" />
+                          <div className="grid gap-0.5">
+                            <p>
+                              Ledoit-Wolf Constant variance{" "}
+                              <span className="font-medium text-foreground">
+                                Covariance
+                              </span>
+                            </p>
+                            <p className="text-xs" data-description>
+                              Our fastest model for general use cases.
+                            </p>
+                          </div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="ledoit_wolf_single_factor">
+                        <div className="flex items-start gap-3 text-muted-foreground">
+                          <Undo2 className="size-5" />
+                          <div className="grid gap-0.5">
+                            <p>
+                              Ledoit-Wolf Constant Single Factor{" "}
+                              <span className="font-medium text-foreground">
+                                Covariance
+                              </span>
+                            </p>
+                            <p className="text-xs" data-description>
+                              Our fastest model for general use cases.
+                            </p>
+                          </div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="ledoit_wolf_constant_correlation">
+                        <div className="flex items-start gap-3 text-muted-foreground">
+                          <Undo2 className="size-5" />
+                          <div className="grid gap-0.5">
+                            <p>
+                              Ledoit-Wolf Constant Correlation{" "}
+                              <span className="font-medium text-foreground">
+                                Covariance
+                              </span>
+                            </p>
+                            <p className="text-xs" data-description>
+                              Our fastest model for general use cases.
+                            </p>
+                          </div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="oracle_approximating">
+                        <div className="flex items-start gap-3 text-muted-foreground">
+                          <Undo2 className="size-5" />
+                          <div className="grid gap-0.5">
+                            <p>
+                              Oracle Approximating{" "}
+                              <span className="font-medium text-foreground">
+                                Covariance
+                              </span>
+                            </p>
+                            <p className="text-xs" data-description>
+                              Our fastest model for general use cases.
+                            </p>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </fieldset>
               <fieldset className="grid gap-6 rounded-lg border p-4">
