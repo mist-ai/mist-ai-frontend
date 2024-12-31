@@ -1,5 +1,5 @@
 import { TooltipProvider } from "@radix-ui/react-tooltip";
-import { Dashboard } from "./dashboard";
+import Dashboard from "./pages/dashboard";
 
 function App() {
   return (
