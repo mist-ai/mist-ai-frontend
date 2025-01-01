@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Layout from "./layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,8 +35,18 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@radix-ui/react-tooltip";
+import { fetchMessages } from "@/services/api";
 
 const Dashboard: React.FC = () => {
+  const [messages, setMessages] = useState([]);
+
+  useEffect(() => {
+    fetchMessages(6).then((data) => {
+      console.log(data);
+      setMessages(data);
+    });
+  }, []);
+
   return (
     <Layout>
       <div className="flex flex-col">
