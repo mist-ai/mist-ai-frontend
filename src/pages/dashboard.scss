@@ -16,19 +16,10 @@
 }
 
 .msg-send-message {
-    font-weight: bold;
     margin-top: 8px;
+    font-size: 20px;
+    line-height: normal;
+    color: black
 }
 
-.msg-reasoning {
-    margin-left: 2rem;
-    color: grey;
-    font-size: 15px;
-}
 
-.msg-ips-call {
-    background-color: rgba(172, 255, 47, 0.47);
-    width: fit-content;
-    padding: 10px 20px;
-    border-radius: 10px;
-}

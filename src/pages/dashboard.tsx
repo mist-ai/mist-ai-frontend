@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import Layout from "./layout";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -41,6 +40,8 @@ import {
   MessageType,
 } from "@/models/get-agent-messages-api-response";
 import "./dashboard.scss";
+import agentIcon from "../assets/agent.webp";
+import toolIcon from "../assets/tool.png";
 
 const Dashboard: React.FC = () => {
   const [messages, setMessages] = useState<LettaMessage[]>([]);
@@ -64,7 +65,6 @@ const Dashboard: React.FC = () => {
     switch (message.message_type) {
       case MessageType.User:
         return JSON.parse(message.message).message;
-        break;
 
       case MessageType.ToolCall:
         switch (message.tool_call.name) {
@@ -77,25 +77,49 @@ const Dashboard: React.FC = () => {
           case "call_ips":
             return (
               <div className="msg-ips-call">
-                <b>IPS Agent: </b>
-                <br />
-                prompt:
-                {JSON.parse(message.tool_call.arguments ?? "{}").prompt}
+                <div className="flex row items-center gap-2">
+                  <img src={agentIcon} width={35} alt="Agent Logo" />
+                  <b>IPS Agent: </b>
+                </div>
+                <div className="pl-12 text-gray-500">
+                  <b>prompt:</b>
+                  {JSON.parse(message.tool_call.arguments ?? "{}").prompt}
+                </div>
               </div>
             );
           default:
-            return message.tool_call.name;
+            return (
+              <div className="flex row items-center gap-2">
+                <img src={toolIcon} width={35} alt="Agent Logo" />
+                <b>{message.tool_call.name} </b>
+              </div>
+            );
         }
 
       case MessageType.Reasoning:
         return (
-          <div className="msg-reasoning">Reasoning: {message.reasoning}</div>
+          <div className="msg-reasoning pl-12 text-gray-500">
+            <b>Reasoning</b>: {message.reasoning}
+          </div>
         );
 
-      case MessageType.ToolReturn:
-        return JSON.parse(message.tool_return).message === "None"
-          ? ""
-          : JSON.parse(message.tool_return).message;
+      case MessageType.ToolReturn: {
+        const toolReturnMessage = JSON.parse(
+          message.tool_return ?? "{}"
+        ).message;
+        console.log("toolreturn", toolReturnMessage);
+        return (
+          <div className="msg-reasoning pl-12 text-gray-500">
+            {toolReturnMessage !== "None" && toolReturnMessage !== null ? (
+              <>
+                <b>Response</b>: {toolReturnMessage}
+              </>
+            ) : (
+              ""
+            )}
+          </div>
+        );
+      }
 
       default:
         return message.message_type;
