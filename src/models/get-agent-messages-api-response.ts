@@ -30,7 +30,7 @@ interface SystemMessage extends MessageBase {
 /**
  * Represents a message sent by the user.
  */
-interface UserMessage extends MessageBase {
+export interface UserMessage extends MessageBase {
   message_type: MessageType.User; // Indicates this is a user message.
   message: string; // The content of the user message.
 }
@@ -54,12 +54,12 @@ interface ToolCallFunction {
 /**
  * Represents a tool call requested by the LLM.
  */
-// interface ToolCall {
-//   id: string; // The unique identifier for the tool call.
-//   function: ToolCallFunction; // The function details for the tool call.
-//   type?: string; // The type of the tool call (defaults to "function").
-//   tool_call_id?: string; // The unique identifier for the tool call (optional).
-// }
+interface ToolCall {
+  id: string; // The unique identifier for the tool call.
+  function: ToolCallFunction; // The function details for the tool call.
+  type?: string; // The type of the tool call (defaults to "function").
+  tool_call_id?: string; // The unique identifier for the tool call (optional).
+}
 
 /**
  * Represents a delta update for a tool call (partial updates).

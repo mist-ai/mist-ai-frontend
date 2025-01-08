@@ -38,6 +38,7 @@ import { fetchMessages } from "@/services/api";
 import {
   LettaMessage,
   MessageType,
+  UserMessage,
 } from "@/models/get-agent-messages-api-response";
 import "./dashboard.scss";
 import agentIcon from "../assets/agent.webp";
@@ -107,7 +108,6 @@ const Dashboard: React.FC = () => {
         const toolReturnMessage = JSON.parse(
           message.tool_return ?? "{}"
         ).message;
-        console.log("toolreturn", toolReturnMessage);
         return (
           <div className="msg-reasoning pl-12 text-gray-500">
             {toolReturnMessage !== "None" && toolReturnMessage !== null ? (
@@ -124,6 +124,17 @@ const Dashboard: React.FC = () => {
       default:
         return message.message_type;
     }
+  };
+
+  const submitMessage = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    console.log(form.message.value);
+    const inputMessage: UserMessage = {
+      message_type: MessageType.User,
+      message: `{"message": "${form.message.value}"}`,
+    };
+    setMessages([...messages, inputMessage]);
   };
 
   return (
@@ -373,8 +384,8 @@ const Dashboard: React.FC = () => {
               </fieldset>
             </form>
           </div>
-          <div className="relative flex h-full min-h-[50vh] flex-col rounded-xl bg-muted/50 p-4 lg:col-span-2">
-            <div className="flex-1">
+          <div className="relative flex max-h-[90vh] min-h-[50vh] flex-col rounded-xl bg-muted/50 p-4 lg:col-span-2">
+            <div className="flex-1 pb-12 overflow-auto">
               {messages.map((message, index) => (
                 <div
                   key={index}
@@ -383,7 +394,7 @@ const Dashboard: React.FC = () => {
                   <div
                     className={`grid gap-2 msg-container-${message.message_type}`}
                   >
-                    <p>{renderMessageContent(message)}</p>
+                    <>{renderMessageContent(message)}</>
                   </div>
                 </div>
               ))}
@@ -392,6 +403,7 @@ const Dashboard: React.FC = () => {
             <form
               className="relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring"
               x-chunk="dashboard-03-chunk-1"
+              onSubmit={(e) => submitMessage(e)}
             >
               <Label htmlFor="message" className="sr-only">
                 Message
