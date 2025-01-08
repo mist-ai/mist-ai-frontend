@@ -1,0 +1,26 @@
+.msg-outer-div {
+    width: 80%;
+}
+
+.msg-outer-div-user_message {
+    display: flex;
+    justify-content: flex-end;
+    width: auto;
+}
+
+.msg-container-user_message {
+    width: fit-content;
+    background-color: rgb(211, 225, 237);
+    padding: 10px 20px;
+    border-radius: 10px;
+    margin: 10px 0;
+}
+
+.msg-send-message {
+    margin-top: 8px;
+    font-size: 20px;
+    line-height: normal;
+    color: black
+}
+
+

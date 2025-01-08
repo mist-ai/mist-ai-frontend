@@ -1,23 +1,5 @@
-import {
-  Bird,
-  Book,
-  Bot,
-  Code2,
-  CornerDownLeft,
-  LifeBuoy,
-  Mic,
-  Paperclip,
-  Rabbit,
-  Settings,
-  Settings2,
-  Share,
-  SquareTerminal,
-  SquareUser,
-  Triangle,
-  Turtle,
-} from "lucide-react";
-
-import { Badge } from "@/components/ui/badge";
+import React, { useEffect, useState } from "react";
+import Layout from "./layout";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -38,133 +20,174 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Bird,
+  CornerDownLeft,
+  Mic,
+  Paperclip,
+  Rabbit,
+  Settings,
+  Share,
+  Turtle,
+} from "lucide-react";
+import {
   Tooltip,
-  TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+  TooltipContent,
+} from "@radix-ui/react-tooltip";
+import { fetchMessages, postMessage } from "@/services/api";
+import {
+  LettaMessage,
+  MessageType,
+  UserMessage,
+} from "@/models/get-agent-messages-api-response";
+import "./dashboard.scss";
+import agentIcon from "../assets/agent.webp";
+import toolIcon from "../assets/tool.png";
 
-export const description =
-  "An AI playground with a sidebar navigation and a main content area. The playground has a header with a settings drawer and a share button. The sidebar has navigation links and a user menu. The main content area shows a form to configure the model and messages.";
+const Dashboard: React.FC = () => {
+  const [messages, setMessages] = useState<LettaMessage[]>([]);
 
-export function Dashboard() {
+  useEffect(() => {
+    fetchMessages(55).then((data) => {
+      // Filter out heartbeat messages
+      const filteredData = data.filter(
+        (message) =>
+          !(
+            message.message_type === MessageType.System ||
+            (message.message_type === MessageType.User &&
+              JSON.parse(message.message).type === "heartbeat")
+          )
+      );
+      setMessages(filteredData);
+    });
+  }, []);
+
+  const renderMessageContent = (message: LettaMessage) => {
+    switch (message.message_type) {
+      case MessageType.User:
+        return JSON.parse(message.message).message;
+
+      case MessageType.ToolCall:
+        switch (message.tool_call.name) {
+          case "send_message":
+            return (
+              <div className="msg-send-message">
+                {JSON.parse(message.tool_call.arguments ?? "{}").message}
+              </div>
+            );
+          case "call_ips":
+            return (
+              <div className="msg-ips-call">
+                <div className="flex row items-center gap-2">
+                  <img src={agentIcon} width={35} alt="Agent Logo" />
+                  <b>IPS Agent: </b>
+                </div>
+                <div className="pl-12 text-gray-500">
+                  <b>prompt:</b>
+                  {JSON.parse(message.tool_call.arguments ?? "{}").prompt}
+                </div>
+              </div>
+            );
+          default:
+            return (
+              <div className="flex row items-center gap-2">
+                <img src={toolIcon} width={35} alt="Agent Logo" />
+                <b>{message.tool_call.name} </b>
+              </div>
+            );
+        }
+
+      case MessageType.Reasoning:
+        return (
+          <div className="msg-reasoning pl-12 text-gray-500">
+            <b>Reasoning</b>: {message.reasoning}
+          </div>
+        );
+
+      case MessageType.ToolReturn: {
+        let toolReturnMessage = "{}";
+        if (
+          !(message.tool_return === undefined || message.tool_return === "None")
+        ) {
+          toolReturnMessage = JSON.parse(message.tool_return).message;
+          return (
+            <div className="msg-reasoning pl-12 text-gray-500">
+              {toolReturnMessage !== "None" && toolReturnMessage !== null ? (
+                <>
+                  <b>Response</b>: {toolReturnMessage}
+                </>
+              ) : (
+                ""
+              )}
+            </div>
+          );
+        }
+        return <></>;
+      }
+
+      default:
+        return message.message_type;
+    }
+  };
+
+  const submitMessage = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    console.log(form.message.value);
+    const inputMessage: UserMessage = {
+      message_type: MessageType.User,
+      message: `{"message": "${form.message.value}"}`,
+    };
+    setMessages((prevMessages) => [...prevMessages, inputMessage]);
+
+    const response = await postMessage(form.message.value);
+
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split("\n\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        console.log("line: ", line);
+        if (line.trim() === "data: [DONE_GEN]") {
+          continue;
+        }
+
+        if (line.trim() === "data: [DONE_STEP]") {
+          continue;
+        }
+
+        if (line.trim() === "data: [DONE]") {
+          break;
+        }
+
+        if (line.startsWith("data: ")) {
+          const jsonStr = line.replace("data: ", "");
+          try {
+            const parsedData = JSON.parse(jsonStr);
+            if (parsedData.message_type === "function_call") {
+              // setStatus(parsedData.function_call.name + "is being called...");
+            }
+            console.log("parsedData: ", parsedData);
+            setMessages((prevMessages) => [...prevMessages, parsedData]);
+          } catch (error) {
+            console.error("Failed to parse JSON:", error);
+          }
+        }
+      }
+    }
+  };
+
   return (
-    <div className="grid h-screen w-full pl-[56px]">
-      <aside className="inset-y fixed  left-0 z-20 flex h-full flex-col border-r">
-        <div className="border-b p-2">
-          <Button variant="outline" size="icon" aria-label="Home">
-            <Triangle className="size-5 fill-foreground" />
-          </Button>
-        </div>
-        <nav className="grid gap-1 p-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-lg bg-muted"
-                aria-label="Playground"
-              >
-                <SquareTerminal className="size-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={5}>
-              MIST.ai
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-lg"
-                aria-label="Models"
-              >
-                <Bot className="size-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={5}>
-              Models
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-lg"
-                aria-label="API"
-              >
-                <Code2 className="size-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={5}>
-              API
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-lg"
-                aria-label="Documentation"
-              >
-                <Book className="size-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={5}>
-              Documentation
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-lg"
-                aria-label="Settings"
-              >
-                <Settings2 className="size-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={5}>
-              Settings
-            </TooltipContent>
-          </Tooltip>
-        </nav>
-        <nav className="mt-auto grid gap-1 p-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="mt-auto rounded-lg"
-                aria-label="Help"
-              >
-                <LifeBuoy className="size-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={5}>
-              Help
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="mt-auto rounded-lg"
-                aria-label="Account"
-              >
-                <SquareUser className="size-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={5}>
-              Account
-            </TooltipContent>
-          </Tooltip>
-        </nav>
-      </aside>
+    <Layout>
       <div className="flex flex-col">
         <header className="sticky top-0 z-10 flex h-[57px] items-center gap-1 border-b bg-background px-4">
           <h1 className="text-xl font-semibold">MIST.ai</h1>
@@ -410,14 +433,26 @@ export function Dashboard() {
               </fieldset>
             </form>
           </div>
-          <div className="relative flex h-full min-h-[50vh] flex-col rounded-xl bg-muted/50 p-4 lg:col-span-2">
-            <Badge variant="outline" className="absolute right-3 top-3">
-              Output
-            </Badge>
-            <div className="flex-1" />
+          <div className="relative flex max-h-[90vh] min-h-[50vh] flex-col rounded-xl bg-muted/50 p-4 lg:col-span-2">
+            <div className="flex-1 pb-12 pr-2 overflow-auto">
+              {messages.map((message, index) => (
+                <div
+                  key={index}
+                  className={`grid gap-2 msg-outer-div msg-outer-div-${message.message_type}`}
+                >
+                  <div
+                    className={`grid gap-2 msg-container-${message.message_type}`}
+                  >
+                    <>{renderMessageContent(message)}</>
+                  </div>
+                </div>
+              ))}
+            </div>
+
             <form
               className="relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring"
               x-chunk="dashboard-03-chunk-1"
+              onSubmit={(e) => submitMessage(e)}
             >
               <Label htmlFor="message" className="sr-only">
                 Message
@@ -455,6 +490,8 @@ export function Dashboard() {
           </div>
         </main>
       </div>
-    </div>
+    </Layout>
   );
-}
+};
+
+export default Dashboard;
