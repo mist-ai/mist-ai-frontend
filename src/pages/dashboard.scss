@@ -1,0 +1,34 @@
+.msg-outer-div {
+    width: 80%;
+}
+
+.msg-outer-div-user_message {
+    display: flex;
+    justify-content: flex-end;
+    width: auto;
+}
+
+.msg-container-user_message {
+    width: fit-content;
+    background-color: rgb(211, 225, 237);
+    padding: 10px 20px;
+    border-radius: 10px;
+}
+
+.msg-send-message {
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+.msg-reasoning {
+    margin-left: 2rem;
+    color: grey;
+    font-size: 15px;
+}
+
+.msg-ips-call {
+    background-color: rgba(172, 255, 47, 0.47);
+    width: fit-content;
+    padding: 10px 20px;
+    border-radius: 10px;
+}

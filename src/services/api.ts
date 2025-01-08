@@ -1,3 +1,5 @@
+import { LettaMessage } from "@/models/get-agent-messages-api-response";
+
 const agentId = import.meta.env.VITE_LETTA_AGENT_ID;
 
 export const fetchMessages = async (limit: number) => {
@@ -11,6 +13,6 @@ export const fetchMessages = async (limit: number) => {
     }
   );
 
-  const data = await response.json();
+  const data: LettaMessage[] = await response.json();
   return data;
 };

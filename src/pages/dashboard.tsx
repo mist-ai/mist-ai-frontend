@@ -36,16 +36,71 @@ import {
   TooltipContent,
 } from "@radix-ui/react-tooltip";
 import { fetchMessages } from "@/services/api";
+import {
+  LettaMessage,
+  MessageType,
+} from "@/models/get-agent-messages-api-response";
+import "./dashboard.scss";
 
 const Dashboard: React.FC = () => {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<LettaMessage[]>([]);
 
   useEffect(() => {
-    fetchMessages(6).then((data) => {
-      console.log(data);
-      setMessages(data);
+    fetchMessages(15).then((data) => {
+      // Filter out heartbeat messages
+      const filteredData = data.filter(
+        (message) =>
+          !(
+            message.message_type === MessageType.System ||
+            (message.message_type === MessageType.User &&
+              JSON.parse(message.message).type === "heartbeat")
+          )
+      );
+      setMessages(filteredData);
     });
   }, []);
+
+  const renderMessageContent = (message: LettaMessage) => {
+    switch (message.message_type) {
+      case MessageType.User:
+        return JSON.parse(message.message).message;
+        break;
+
+      case MessageType.ToolCall:
+        switch (message.tool_call.name) {
+          case "send_message":
+            return (
+              <div className="msg-send-message">
+                {JSON.parse(message.tool_call.arguments ?? "{}").message}
+              </div>
+            );
+          case "call_ips":
+            return (
+              <div className="msg-ips-call">
+                <b>IPS Agent: </b>
+                <br />
+                prompt:
+                {JSON.parse(message.tool_call.arguments ?? "{}").prompt}
+              </div>
+            );
+          default:
+            return message.tool_call.name;
+        }
+
+      case MessageType.Reasoning:
+        return (
+          <div className="msg-reasoning">Reasoning: {message.reasoning}</div>
+        );
+
+      case MessageType.ToolReturn:
+        return JSON.parse(message.tool_return).message === "None"
+          ? ""
+          : JSON.parse(message.tool_return).message;
+
+      default:
+        return message.message_type;
+    }
+  };
 
   return (
     <Layout>
@@ -295,10 +350,21 @@ const Dashboard: React.FC = () => {
             </form>
           </div>
           <div className="relative flex h-full min-h-[50vh] flex-col rounded-xl bg-muted/50 p-4 lg:col-span-2">
-            <Badge variant="outline" className="absolute right-3 top-3">
-              Output
-            </Badge>
-            <div className="flex-1" />
+            <div className="flex-1">
+              {messages.map((message, index) => (
+                <div
+                  key={index}
+                  className={`grid gap-2 msg-outer-div msg-outer-div-${message.message_type}`}
+                >
+                  <div
+                    className={`grid gap-2 msg-container-${message.message_type}`}
+                  >
+                    <p>{renderMessageContent(message)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
             <form
               className="relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring"
               x-chunk="dashboard-03-chunk-1"
