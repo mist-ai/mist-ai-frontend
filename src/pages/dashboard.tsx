@@ -34,7 +34,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@radix-ui/react-tooltip";
-import { fetchMessages } from "@/services/api";
+import { fetchMessages, postMessage } from "@/services/api";
 import {
   LettaMessage,
   MessageType,
@@ -48,7 +48,7 @@ const Dashboard: React.FC = () => {
   const [messages, setMessages] = useState<LettaMessage[]>([]);
 
   useEffect(() => {
-    fetchMessages(15).then((data) => {
+    fetchMessages(55).then((data) => {
       // Filter out heartbeat messages
       const filteredData = data.filter(
         (message) =>
@@ -105,20 +105,24 @@ const Dashboard: React.FC = () => {
         );
 
       case MessageType.ToolReturn: {
-        const toolReturnMessage = JSON.parse(
-          message.tool_return ?? "{}"
-        ).message;
-        return (
-          <div className="msg-reasoning pl-12 text-gray-500">
-            {toolReturnMessage !== "None" && toolReturnMessage !== null ? (
-              <>
-                <b>Response</b>: {toolReturnMessage}
-              </>
-            ) : (
-              ""
-            )}
-          </div>
-        );
+        let toolReturnMessage = "{}";
+        if (
+          !(message.tool_return === undefined || message.tool_return === "None")
+        ) {
+          toolReturnMessage = JSON.parse(message.tool_return).message;
+          return (
+            <div className="msg-reasoning pl-12 text-gray-500">
+              {toolReturnMessage !== "None" && toolReturnMessage !== null ? (
+                <>
+                  <b>Response</b>: {toolReturnMessage}
+                </>
+              ) : (
+                ""
+              )}
+            </div>
+          );
+        }
+        return <></>;
       }
 
       default:
@@ -126,7 +130,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const submitMessage = (e: React.FormEvent<HTMLFormElement>) => {
+  const submitMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
     console.log(form.message.value);
@@ -134,7 +138,52 @@ const Dashboard: React.FC = () => {
       message_type: MessageType.User,
       message: `{"message": "${form.message.value}"}`,
     };
-    setMessages([...messages, inputMessage]);
+    setMessages((prevMessages) => [...prevMessages, inputMessage]);
+
+    const response = await postMessage(form.message.value);
+
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split("\n\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        console.log("line: ", line);
+        if (line.trim() === "data: [DONE_GEN]") {
+          continue;
+        }
+
+        if (line.trim() === "data: [DONE_STEP]") {
+          continue;
+        }
+
+        if (line.trim() === "data: [DONE]") {
+          break;
+        }
+
+        if (line.startsWith("data: ")) {
+          const jsonStr = line.replace("data: ", "");
+          try {
+            const parsedData = JSON.parse(jsonStr);
+            if (parsedData.message_type === "function_call") {
+              // setStatus(parsedData.function_call.name + "is being called...");
+            }
+            console.log("parsedData: ", parsedData);
+            setMessages((prevMessages) => [...prevMessages, parsedData]);
+          } catch (error) {
+            console.error("Failed to parse JSON:", error);
+          }
+        }
+      }
+    }
   };
 
   return (
@@ -385,7 +434,7 @@ const Dashboard: React.FC = () => {
             </form>
           </div>
           <div className="relative flex max-h-[90vh] min-h-[50vh] flex-col rounded-xl bg-muted/50 p-4 lg:col-span-2">
-            <div className="flex-1 pb-12 overflow-auto">
+            <div className="flex-1 pb-12 pr-2 overflow-auto">
               {messages.map((message, index) => (
                 <div
                   key={index}

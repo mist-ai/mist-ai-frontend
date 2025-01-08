@@ -16,3 +16,22 @@ export const fetchMessages = async (limit: number) => {
   const data: LettaMessage[] = await response.json();
   return data;
 };
+
+export const postMessage = async (message: string) => {
+  const response = await fetch(`api/agents/${agentId}/messages/stream`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      messages: [
+        {
+          role: "user",
+          text: message,
+        },
+      ],
+    }),
+  });
+
+  return response;
+};
