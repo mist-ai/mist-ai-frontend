@@ -27,7 +27,7 @@ export const postMessage = async (message: string) => {
       messages: [
         {
           role: "user",
-          text: message,
+          content: message,
         },
       ],
     }),
