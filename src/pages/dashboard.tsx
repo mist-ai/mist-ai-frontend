@@ -34,6 +34,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@radix-ui/react-tooltip";
+import ReactMarkdown from "react-markdown";
 import { fetchMessages, postMessage } from "@/services/api";
 import {
   LettaMessage,
@@ -48,6 +49,7 @@ const Dashboard: React.FC = () => {
   const [messages, setMessages] = useState<LettaMessage[]>([]);
   const messageEndRef = useRef<HTMLDivElement>(null);
   const [notifier, setNotifier] = useState<string | null>(null);
+  const [inputMsg, setInputMsg] = useState<string>("");
 
   useEffect(() => {
     fetchMessages(55).then((data) => {
@@ -84,7 +86,9 @@ const Dashboard: React.FC = () => {
         return message.content;
 
       case MessageType.Assistant:
-        return <div className="pt-3 pb-1 font-semibold">{message.content}</div>;
+        return (
+          <ReactMarkdown className="pt-3 pb-1">{message.content}</ReactMarkdown>
+        );
 
       case MessageType.ToolCall:
         return (
@@ -103,7 +107,7 @@ const Dashboard: React.FC = () => {
       case MessageType.Reasoning:
         return (
           <div className="msg-reasoning pl-12 text-gray-500">
-            <b>Reasoning</b>: {message.reasoning}
+            <b>Reasoning</b>: <ReactMarkdown>{message.reasoning}</ReactMarkdown>
           </div>
         );
 
@@ -117,7 +121,8 @@ const Dashboard: React.FC = () => {
             <div className="msg-reasoning pl-12 text-gray-500">
               {toolReturnMessage !== "None" && toolReturnMessage !== null ? (
                 <>
-                  <b>Response</b>: {toolReturnMessage}
+                  <b>Response</b>:{" "}
+                  <ReactMarkdown>{toolReturnMessage}</ReactMarkdown>
                 </>
               ) : (
                 ""
@@ -135,18 +140,19 @@ const Dashboard: React.FC = () => {
 
   const submitMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = e.target as HTMLFormElement;
-    console.log(form.message.value);
+    const inputContent: string = inputMsg;
+
+    setInputMsg("");
 
     const inputMessage: UserMessage = {
       message_type: MessageType.User,
-      content: form.message.value,
+      content: inputContent,
     };
     setMessages((prevMessages) => [...prevMessages, inputMessage]);
 
     setNotifier("MIST AI agent is processing...");
 
-    const response = await postMessage(form.message.value);
+    const response = await postMessage(inputContent);
 
     const reader = response.body?.getReader();
     const decoder = new TextDecoder();
@@ -191,6 +197,13 @@ const Dashboard: React.FC = () => {
           }
         }
       }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      submitMessage(e as unknown as React.FormEvent<HTMLFormElement>);
     }
   };
 
@@ -471,13 +484,16 @@ const Dashboard: React.FC = () => {
             <form
               className="relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring"
               x-chunk="dashboard-03-chunk-1"
-              onSubmit={(e) => submitMessage(e)}
+              onSubmit={submitMessage}
             >
               <Label htmlFor="message" className="sr-only">
                 Message
               </Label>
               <Textarea
                 id="message"
+                value={inputMsg}
+                onChange={(e) => setInputMsg(e.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder="Type your message here..."
                 className="min-h-12 resize-none border-0 p-3 shadow-none focus-visible:ring-0"
               />
