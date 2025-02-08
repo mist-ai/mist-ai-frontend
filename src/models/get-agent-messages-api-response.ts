@@ -8,6 +8,7 @@ export enum MessageType {
   ToolCall = "tool_call_message",
   ToolReturn = "tool_return_message",
   Assistant = "assistant_message",
+  Statistics = "usage_statistics",
 }
 
 /**
@@ -32,7 +33,7 @@ interface SystemMessage extends MessageBase {
  */
 export interface UserMessage extends MessageBase {
   message_type: MessageType.User; // Indicates this is a user message.
-  message: string; // The content of the user message.
+  content: string; // The content of the user message.
 }
 
 /**
@@ -95,7 +96,7 @@ interface ToolReturnMessage extends MessageBase {
  */
 interface AssistantMessage extends MessageBase {
   message_type: MessageType.Assistant; // Indicates this is an assistant message.
-  assistant_message: string; // The content of the assistant message.
+  content: string; // The content of the assistant message.
 }
 
 /**

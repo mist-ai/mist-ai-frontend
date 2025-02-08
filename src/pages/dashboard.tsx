@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Layout from "./layout";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,60 +42,63 @@ import {
 } from "@/models/get-agent-messages-api-response";
 import "./dashboard.scss";
 import agentIcon from "../assets/agent.webp";
-import toolIcon from "../assets/tool.png";
+import processGif from "../assets/process1.gif";
 
 const Dashboard: React.FC = () => {
   const [messages, setMessages] = useState<LettaMessage[]>([]);
+  const messageEndRef = useRef<HTMLDivElement>(null);
+  const [notifier, setNotifier] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMessages(55).then((data) => {
-      // Filter out heartbeat messages
-      const filteredData = data.filter(
-        (message) =>
-          !(
-            message.message_type === MessageType.System ||
-            (message.message_type === MessageType.User &&
-              JSON.parse(message.message).type === "heartbeat")
-          )
-      );
+      // Filter out unnecessary messages
+      const filteredData = data.filter((message) => {
+        if (message.message_type === MessageType.System) {
+          return false;
+        }
+        if (message.message_type === MessageType.User) {
+          try {
+            const content = JSON.parse(message.content);
+            if (content.type === "heartbeat" || content.type === "login") {
+              return false;
+            }
+          } catch {
+            // If parsing fails, treat content as plain message that needs to be rendered
+          }
+        }
+        return true;
+      });
       setMessages(filteredData);
     });
   }, []);
 
+  useEffect(() => {
+    if (messageEndRef.current) {
+      messageEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
+
   const renderMessageContent = (message: LettaMessage) => {
     switch (message.message_type) {
       case MessageType.User:
-        return JSON.parse(message.message).message;
+        return message.content;
+
+      case MessageType.Assistant:
+        return <div className="pt-3 pb-1 font-semibold">{message.content}</div>;
 
       case MessageType.ToolCall:
-        switch (message.tool_call.name) {
-          case "send_message":
-            return (
-              <div className="msg-send-message">
-                {JSON.parse(message.tool_call.arguments ?? "{}").message}
-              </div>
-            );
-          case "call_ips":
-            return (
-              <div className="msg-ips-call">
-                <div className="flex row items-center gap-2">
-                  <img src={agentIcon} width={35} alt="Agent Logo" />
-                  <b>IPS Agent: </b>
-                </div>
-                <div className="pl-12 text-gray-500">
-                  <b>prompt:</b>
-                  {JSON.parse(message.tool_call.arguments ?? "{}").prompt}
-                </div>
-              </div>
-            );
-          default:
-            return (
-              <div className="flex row items-center gap-2">
-                <img src={toolIcon} width={35} alt="Agent Logo" />
-                <b>{message.tool_call.name} </b>
-              </div>
-            );
-        }
+        return (
+          <div className="msg-ips-call">
+            <div className="flex row items-center gap-2">
+              <img src={agentIcon} width={35} alt="Agent Logo" />
+              <b>{message.tool_call.name}: </b>
+            </div>
+            <div className="pl-12 text-gray-500">
+              <b>prompt: </b>
+              {JSON.parse(message.tool_call.arguments ?? "{}").prompt}
+            </div>
+          </div>
+        );
 
       case MessageType.Reasoning:
         return (
@@ -109,7 +112,7 @@ const Dashboard: React.FC = () => {
         if (
           !(message.tool_return === undefined || message.tool_return === "None")
         ) {
-          toolReturnMessage = JSON.parse(message.tool_return).message;
+          toolReturnMessage = message.tool_return;
           return (
             <div className="msg-reasoning pl-12 text-gray-500">
               {toolReturnMessage !== "None" && toolReturnMessage !== null ? (
@@ -134,11 +137,14 @@ const Dashboard: React.FC = () => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
     console.log(form.message.value);
+
     const inputMessage: UserMessage = {
       message_type: MessageType.User,
-      message: `{"message": "${form.message.value}"}`,
+      content: form.message.value,
     };
     setMessages((prevMessages) => [...prevMessages, inputMessage]);
+
+    setNotifier("MIST AI agent is processing...");
 
     const response = await postMessage(form.message.value);
 
@@ -157,15 +163,9 @@ const Dashboard: React.FC = () => {
 
       for (const line of lines) {
         console.log("line: ", line);
-        if (line.trim() === "data: [DONE_GEN]") {
-          continue;
-        }
-
-        if (line.trim() === "data: [DONE_STEP]") {
-          continue;
-        }
 
         if (line.trim() === "data: [DONE]") {
+          setNotifier(null);
           break;
         }
 
@@ -173,8 +173,16 @@ const Dashboard: React.FC = () => {
           const jsonStr = line.replace("data: ", "");
           try {
             const parsedData = JSON.parse(jsonStr);
-            if (parsedData.message_type === "function_call") {
+            if (parsedData.message_type === "tool_call_message") {
               // setStatus(parsedData.function_call.name + "is being called...");
+              setNotifier(parsedData.tool_call.name + " is being called...");
+            }
+            if (parsedData.message_type === "tool_return_message") {
+              // setStatus("Response received...");
+              setNotifier("MIST AI agent is processing...");
+            }
+            if (parsedData.message_type === MessageType.Statistics) {
+              continue;
             }
             console.log("parsedData: ", parsedData);
             setMessages((prevMessages) => [...prevMessages, parsedData]);
@@ -447,6 +455,17 @@ const Dashboard: React.FC = () => {
                   </div>
                 </div>
               ))}
+              {notifier && (
+                <div
+                  className="p-2 pr-6 rounded-lg ml-2 mt-4 flex-row items-center 
+                inline-flex"
+                >
+                  {" "}
+                  <img src={processGif} width="53px" />
+                  <div className="pl-4"> {notifier} </div>
+                </div>
+              )}
+              <div ref={messageEndRef} />
             </div>
 
             <form
