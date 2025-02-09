@@ -44,6 +44,7 @@ import {
 import "./dashboard.scss";
 import agentIcon from "../assets/agent.webp";
 import processGif from "../assets/process1.gif";
+import syncIcon from "../assets/sync.png";
 
 const Dashboard: React.FC = () => {
   const [messages, setMessages] = useState<LettaMessage[]>([]);
@@ -70,7 +71,19 @@ const Dashboard: React.FC = () => {
         }
         return true;
       });
-      setMessages(filteredData);
+
+      const processedMessages = [...filteredData];
+      for (let i = 1; i < processedMessages.length; i++) {
+        if (processedMessages[i].message_type === MessageType.Reasoning) {
+          // Swap with the previous message
+          [processedMessages[i], processedMessages[i - 1]] = [
+            processedMessages[i - 1],
+            processedMessages[i],
+          ];
+        }
+      }
+
+      setMessages(processedMessages);
     });
   }, []);
 
@@ -92,12 +105,12 @@ const Dashboard: React.FC = () => {
 
       case MessageType.ToolCall:
         return (
-          <div className="msg-ips-call">
+          <div className="msg-ips-call bg-blue-50 p-2 rounded-tl-xl rounded-tr-xl">
             <div className="flex row items-center gap-2">
-              <img src={agentIcon} width={35} alt="Agent Logo" />
+              <img src={agentIcon} width={30} alt="Agent Logo" />
               <b>{message.tool_call.name}: </b>
             </div>
-            <div className="pl-12 text-gray-500">
+            <div className="pl-10 text-gray-500">
               <b>prompt: </b>
               {JSON.parse(message.tool_call.arguments ?? "{}").prompt}
             </div>
@@ -106,8 +119,15 @@ const Dashboard: React.FC = () => {
 
       case MessageType.Reasoning:
         return (
-          <div className="msg-reasoning pl-12 text-gray-500">
-            <b>Reasoning</b>: <ReactMarkdown>{message.reasoning}</ReactMarkdown>
+          <div className="msg-reasoning pl-4 mb-2 mt-2 text-gray-500 flex flex-row">
+            <div className="bg-cyan-700 w-0.5 mr-2 pb-1"></div>
+            <div className="flex flex-col pl-2">
+              <div className="flex flex-row items-center gap-2">
+                <img src={syncIcon} width={20} alt="Brain Logo" />
+                <b>Reasoning</b>
+              </div>
+              <ReactMarkdown>{message.reasoning}</ReactMarkdown>
+            </div>
           </div>
         );
 
@@ -118,7 +138,7 @@ const Dashboard: React.FC = () => {
         ) {
           toolReturnMessage = message.tool_return;
           return (
-            <div className="msg-reasoning pl-12 text-gray-500">
+            <div className="msg-reasoning pl-12 text-gray-500 bg-blue-50 p-2 pt-0 rounded-bl-xl rounded-br-xl">
               {toolReturnMessage !== "None" && toolReturnMessage !== null ? (
                 <>
                   <b>Response</b>:{" "}
