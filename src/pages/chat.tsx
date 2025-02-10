@@ -41,12 +41,12 @@ import {
   MessageType,
   UserMessage,
 } from "@/models/get-agent-messages-api-response";
-import "./dashboard.scss";
+import "./chat.scss";
 import agentIcon from "../assets/agent.webp";
 import processGif from "../assets/process1.gif";
 import syncIcon from "../assets/sync.png";
 
-const Dashboard: React.FC = () => {
+const Chat: React.FC = () => {
   const [messages, setMessages] = useState<LettaMessage[]>([]);
   const messageEndRef = useRef<HTMLDivElement>(null);
   const [notifier, setNotifier] = useState<string | null>(null);
@@ -549,4 +549,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default Chat;

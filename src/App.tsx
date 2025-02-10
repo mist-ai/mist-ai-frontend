@@ -1,10 +1,10 @@
 import { TooltipProvider } from "@radix-ui/react-tooltip";
-import Dashboard from "./pages/dashboard";
+import Chat from "./pages/chat";
 
 function App() {
   return (
     <TooltipProvider>
-      <Dashboard />
+      <Chat />
     </TooltipProvider>
   );
 }
