@@ -228,7 +228,6 @@ const Chat: React.FC = () => {
   };
 
   return (
-    <Layout>
       <div className="flex flex-col">
         <header className="sticky top-0 z-10 flex h-[57px] items-center gap-1 border-b bg-background px-4">
           <h1 className="text-xl font-semibold">MIST.ai</h1>
@@ -545,7 +544,6 @@ const Chat: React.FC = () => {
           </div>
         </main>
       </div>
-    </Layout>
   );
 };
 
