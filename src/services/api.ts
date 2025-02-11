@@ -1,6 +1,10 @@
-import { LettaMessage } from "@/models/get-agent-messages-api-response";
+import {
+  LettaMessage,
+  sendMessageApiResponse,
+} from "@/models/get-agent-messages-api-response";
 
 const agentId = import.meta.env.VITE_LETTA_AGENT_ID;
+const ipsAgentId = import.meta.env.VITE_LETTA_IPS_AGENT_ID;
 
 export const fetchMessages = async (limit: number) => {
   const response = await fetch(
@@ -34,4 +38,24 @@ export const postMessage = async (message: string) => {
   });
 
   return response;
+};
+
+export const sendMessage = async (message: string) => {
+  const response = await fetch(`api/agents/${ipsAgentId}/messages`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      messages: [
+        {
+          role: "user",
+          content: message,
+        },
+      ],
+    }),
+  });
+
+  const data: sendMessageApiResponse = await response.json();
+  return data.messages;
 };

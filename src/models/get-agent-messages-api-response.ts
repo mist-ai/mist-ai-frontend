@@ -127,3 +127,7 @@ export interface GetAgentMessagesApiResponse {
   tool_calls?: ToolCall[]; // A list of tool calls requested (optional).
   messages?: LettaMessage[]; // A list of messages (optional).
 }
+
+export interface sendMessageApiResponse {
+  messages: LettaMessage[];
+}
