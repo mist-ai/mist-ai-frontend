@@ -4,22 +4,114 @@ import AdvRTChart from "../components/trading-view/adv-real-time-chart";
 import StockMarketWidget from "@/components/trading-view/stock-market-widget";
 import TickersSlider from "@/components/trading-view/tickers-slider";
 import MarketData from "@/components/trading-view/market-data";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tooltip } from "@/components/ui/tooltip";
+import { CornerDownLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  TradingViewWidget,
+  TradingViewWidgetType,
+} from "@/models/trading-view-widgets";
+import { sendMessage } from "@/services/api";
 
 const Dashboard: React.FC = () => {
   const [showChat, setShowChat] = useState(false);
-  const [widgets, setWidgets] = useState([
-    { id: 1, component: <AdvRTChart symbol={"SAMP.N000"} /> },
-    { id: 2, component: <SymbolOverviewChart /> },
-    { id: 3, component: <StockMarketWidget /> },
-    { id: 4, component: <MarketData /> },
-  ]);
 
-  const addWidget = (widget: { id: number; component: JSX.Element }) => {
-    setWidgets([...widgets, widget]);
+  const [widgets, setWidgets] = useState([]);
+
+  const addWidget = (widget: TradingViewWidget, id: number) => {
+    console.log("Adding widget: ", widget);
+    let widgetObject;
+    switch (widget.widget) {
+      case TradingViewWidgetType.SymbolOverviewChart:
+        widgetObject = {
+          id,
+          component: <SymbolOverviewChart symbols={widget.props} />,
+        };
+        break;
+      case TradingViewWidgetType.AdvRTChart:
+        widgetObject = { id, component: <AdvRTChart symbol={widget.props} /> };
+        break;
+      case TradingViewWidgetType.MarketData:
+        widgetObject = {
+          id,
+          component: <MarketData marketData={widget.props} />,
+        };
+        break;
+      default:
+        console.error("Unknown widget type: ", widget.widget);
+    }
+    console.log("Widget Object: ", widgetObject);
+    if (widgetObject) {
+      setWidgets((prevWidgets) => [...prevWidgets, widgetObject]);
+    }
+    console.log("Widgets: ", widgets);
   };
 
   const removeWidget = (id: number) => {
     setWidgets(widgets.filter((widget) => widget.id !== id));
+  };
+
+  const [inputMsg, setInputMsg] = useState("");
+  const submitMessage = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    console.log("Message: ", inputMsg);
+    sendMessage(inputMsg, "widget").then((response) => {
+      console.log("Response: ", response);
+      if (response) {
+        console.log("Adding widgets: ", response);
+        let id = widgets.length;
+        for (const widget of response) {
+          console.log("Adding widget widget: ", widget);
+          id++;
+          addWidget(widget.content, id);
+        }
+      }
+    });
+    setInputMsg("");
+
+    const data = [
+      { widget: "AdvRTChart", props: "SAMP.N0000" },
+      {
+        widget: "SymbolOverviewChart",
+        props: [
+          [
+            "CSELK:SAMP.N0000",
+            "CSELK:JKH.N0000",
+            "CSELK:SINS.N0000",
+            "CSELK:LIOC.N0000",
+          ],
+        ],
+      },
+      {
+        widget: "MarketData",
+        props: [
+          {
+            name: "Indices",
+            originalName: "Indices",
+            symbols: [
+              { name: "CSELK:SAMP.N0000", displayName: "Sampath" },
+              { name: "CSELK:JKH.N0000", displayName: "John Keells" },
+              { name: "CSELK:SINS.N0000", displayName: "Singer" },
+              { name: "CSELK:LIOC.N0000", displayName: "LIOC" },
+            ],
+          },
+          {
+            name: "Conversion",
+            originalName: "Conversion",
+            symbols: [{ name: "FX_IDC:LKRUSD", displayName: "LKR to USD" }],
+          },
+        ],
+      },
+    ];
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      submitMessage(e as unknown as React.FormEvent<HTMLFormElement>);
+    }
   };
 
   return (
@@ -27,7 +119,7 @@ const Dashboard: React.FC = () => {
       <div className="text-lg mb-4 font-semibold">MIST.ai Dashboard</div>
 
       <button
-        className="absolute bottom-4 right-4 bg-blue-500 text-white p-3 px-6 rounded-full shadow-lg"
+        className="fixed bottom-4 right-4 bg-blue-500 text-white p-3 px-6 rounded-full shadow-lg"
         onClick={() => setShowChat(true)}
       >
         Chat
@@ -38,13 +130,35 @@ const Dashboard: React.FC = () => {
             className="fixed inset-0 bg-black opacity-70 z-40"
             onClick={() => setShowChat(false)}
           ></div>
-          <div className="fixed bottom-24 right-8 w-1/3 h-2/3 bg-white shadow-lg border p-4 rounded-xl z-50">
-            <div className="flex justify-between items-center mb-2">
-              <div className="text-lg font-semibold">Chat</div>
-              <button onClick={() => setShowChat(false)}>Close</button>
-            </div>
+          <div className="fixed bottom-24 right-8 w-1/3 bg-white shadow-lg border p-4 rounded-xl z-50">
+            <div className="flex justify-between items-center mb-2"></div>
             <div className="h-full overflow-y-auto">
-              {/* Chat content goes here */}
+              <div>
+                <form
+                  className="relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring"
+                  x-chunk="dashboard-03-chunk-1"
+                  onSubmit={submitMessage}
+                >
+                  <Label htmlFor="message" className="sr-only">
+                    Message
+                  </Label>
+                  <Textarea
+                    id="message"
+                    value={inputMsg}
+                    onChange={(e) => setInputMsg(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Type your message here..."
+                    className="min-h-20 resize-none border-0 p-3 shadow-none focus-visible:ring-0"
+                  />
+                  <div className="flex items-center p-3 pt-0">
+                    <Tooltip></Tooltip>
+                    <Button type="submit" size="sm" className="ml-auto gap-1.5">
+                      Add Widget
+                      <CornerDownLeft className="size-3.5" />
+                    </Button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         </>

@@ -1,47 +1,15 @@
-import { AdvRTChartProps } from "@/models/adv-rt-chart";
-import React, { useEffect, useRef, memo } from "react";
+import { AdvRTChartProps } from "@/models/trading-view-widgets";
+import { memo } from "react";
 
-const AdvRTChart: React.FC<AdvRTChartProps> = (props: AdvRTChartProps) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (containerRef.current) {
-      // Clear any existing script
-      containerRef.current.innerHTML = "";
-
-      const script = document.createElement("script");
-      script.src =
-        "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
-      script.type = "text/javascript";
-      script.async = true;
-      script.innerHTML = JSON.stringify({
-        autosize: true,
-        symbol: props.symbol,
-        interval: "D",
-        height: "450",
-        width: "900",
-        timezone: "Etc/UTC",
-        theme: "light",
-        style: "1",
-        locale: "en",
-        allow_symbol_change: true,
-        calendar: false,
-        support_host: "https://www.tradingview.com",
-      });
-      containerRef.current.appendChild(script);
-    }
-  }, []);
-
+const AdvRTChart: React.FC<AdvRTChartProps> = (props) => {
   return (
-    <div
-      className="tradingview-widget-container"
-      ref={containerRef}
-      style={{ height: "100%", width: "100%" }}
-    >
-      <div
-        className="tradingview-widget-container__widget"
-        style={{ height: "calc(100% - 32px)", width: "100%" }}
-      ></div>
+    <div className="tradingview-widget-container">
+      <iframe
+        title="TradingView Chart"
+        src={`https://www.tradingview.com/widgetembed/?symbol=${props.symbol}&interval=D&theme=light&style=1&locale=en`}
+        width="900"
+        height="450"
+      ></iframe>
     </div>
   );
 };
