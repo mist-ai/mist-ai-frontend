@@ -24,6 +24,7 @@ export interface SymbolOverviewChartProps {
 }
 
 export interface TradingViewWidget {
+  id: number;
   widget: TradingViewWidgetType;
   props: AdvRTChartProps | MarketDataList | SymbolOverviewChartProps;
 }

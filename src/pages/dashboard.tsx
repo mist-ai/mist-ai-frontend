@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import SymbolOverviewChart from "../components/trading-view/symbol-overview-chart";
 import AdvRTChart from "../components/trading-view/adv-real-time-chart";
 import StockMarketWidget from "@/components/trading-view/stock-market-widget";
@@ -14,41 +14,39 @@ import {
   TradingViewWidgetType,
 } from "@/models/trading-view-widgets";
 import { sendMessage } from "@/services/api";
+import {
+  getWidgetsFromLocalStorage,
+  removeWidgetFromLocalStorage,
+  saveWidgetToLocalStorage,
+} from "@/services/local-storage";
 
 const Dashboard: React.FC = () => {
   const [showChat, setShowChat] = useState(false);
   const [widgets, setWidgets] = useState([]);
-  const [nextId, setNextId] = useState(1); // State to keep track of the next id
+  const isMounted = useRef(false);
 
-  // Load widget inputs from local storage when the component mounts
+  // Load widgets from local storage when the component mounts
   useEffect(() => {
-    const savedWidgetInputs = localStorage.getItem("widgetInputs");
-    if (savedWidgetInputs) {
-      const parsedWidgetInputs = JSON.parse(savedWidgetInputs);
-      if (parsedWidgetInputs.length > 0) {
-        parsedWidgetInputs.forEach((widgetInput) => addWidget(widgetInput));
-        setNextId(parsedWidgetInputs.length + 1);
-      }
+    if (!isMounted.current) {
+      const savedWidgets = getWidgetsFromLocalStorage();
+      let id = -1;
+
+      savedWidgets.forEach((widget: TradingViewWidget) => {
+        id++;
+        widget.id = id;
+        addWidget(widget);
+      });
+
+      isMounted.current = true;
     }
   }, []);
 
-  // Save widget inputs to local storage whenever they are added or removed
-  useEffect(() => {
-    const widgetInputs = widgets.map((widget) => ({
-      widget: widget.widget,
-      props: widget.props,
-    }));
-    localStorage.setItem("widgetInputs", JSON.stringify(widgetInputs));
-  }, [widgets]);
-
   const addWidget = (widget: TradingViewWidget) => {
-    console.log("Adding widget: ", widget);
-    const id = nextId;
     let widgetObject;
     switch (widget.widget) {
       case TradingViewWidgetType.SymbolOverviewChart:
         widgetObject = {
-          id,
+          id: widget.id,
           widget: widget.widget,
           props: widget.props,
           component: <SymbolOverviewChart symbols={widget.props} />,
@@ -56,7 +54,7 @@ const Dashboard: React.FC = () => {
         break;
       case TradingViewWidgetType.AdvRTChart:
         widgetObject = {
-          id,
+          id: widget.id,
           widget: widget.widget,
           props: widget.props,
           component: <AdvRTChart symbol={widget.props} />,
@@ -64,7 +62,7 @@ const Dashboard: React.FC = () => {
         break;
       case TradingViewWidgetType.MarketData:
         widgetObject = {
-          id,
+          id: widget.id,
           widget: widget.widget,
           props: widget.props,
           component: <MarketData marketData={widget.props} />,
@@ -76,13 +74,13 @@ const Dashboard: React.FC = () => {
     console.log("Widget Object: ", widgetObject);
     if (widgetObject) {
       setWidgets((prevWidgets) => [...prevWidgets, widgetObject]);
-      setNextId((prevId) => prevId + 1); // Increment the next id using functional update
     }
     console.log("Widgets: ", widgets);
   };
 
   const removeWidget = (id: number) => {
     setWidgets(widgets.filter((widget) => widget.id !== id));
+    removeWidgetFromLocalStorage(id);
   };
 
   const [inputMsg, setInputMsg] = useState("");
@@ -91,12 +89,19 @@ const Dashboard: React.FC = () => {
     console.log("Message: ", inputMsg);
     sendMessage(inputMsg, "widget").then((response) => {
       console.log("Response: ", response);
+
       if (response) {
         console.log("Adding widgets: ", response);
         let jOutput = JSON.parse(response[1].content);
+        let id = widgets.length - 1;
+
         for (const widget of jOutput) {
           console.log("Adding widget widget: ", jOutput);
+          id++;
+          widget.id = id;
           addWidget(widget);
+          console.log(id, "Widget Added from submitMSg: ", widget);
+          saveWidgetToLocalStorage(widget);
         }
       }
     });
