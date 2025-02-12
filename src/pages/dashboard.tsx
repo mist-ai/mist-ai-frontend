@@ -11,6 +11,7 @@ import { CornerDownLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   TradingViewWidget,
+  TradingViewWidgetComonent,
   TradingViewWidgetType,
 } from "@/models/trading-view-widgets";
 import { sendMessage } from "@/services/api";
@@ -21,19 +22,17 @@ import {
 } from "@/services/local-storage";
 
 const Dashboard: React.FC = () => {
-  const [showChat, setShowChat] = useState(false);
-  const [widgets, setWidgets] = useState([]);
+  const [showChat, setShowChat] = useState<boolean>(false);
+  const [widgets, setWidgets] = useState<TradingViewWidgetComonent[]>([]);
+  const [inputMsg, setInputMsg] = useState("");
   const isMounted = useRef(false);
 
   // Load widgets from local storage when the component mounts
   useEffect(() => {
     if (!isMounted.current) {
       const savedWidgets = getWidgetsFromLocalStorage();
-      let id = -1;
 
       savedWidgets.forEach((widget: TradingViewWidget) => {
-        id++;
-        widget.id = id;
         addWidget(widget);
       });
 
@@ -42,40 +41,36 @@ const Dashboard: React.FC = () => {
   }, []);
 
   const addWidget = (widget: TradingViewWidget) => {
-    let widgetObject;
+    let widgetObject: TradingViewWidgetComonent | null = null;
     switch (widget.widget) {
       case TradingViewWidgetType.SymbolOverviewChart:
         widgetObject = {
           id: widget.id,
-          widget: widget.widget,
-          props: widget.props,
           component: <SymbolOverviewChart symbols={widget.props} />,
         };
         break;
       case TradingViewWidgetType.AdvRTChart:
         widgetObject = {
           id: widget.id,
-          widget: widget.widget,
-          props: widget.props,
           component: <AdvRTChart symbol={widget.props} />,
         };
         break;
       case TradingViewWidgetType.MarketData:
         widgetObject = {
           id: widget.id,
-          widget: widget.widget,
-          props: widget.props,
           component: <MarketData marketData={widget.props} />,
         };
         break;
       default:
         console.error("Unknown widget type: ", widget.widget);
     }
-    console.log("Widget Object: ", widgetObject);
+
     if (widgetObject) {
-      setWidgets((prevWidgets) => [...prevWidgets, widgetObject]);
+      setWidgets((prevWidgets: TradingViewWidgetComonent[]) => [
+        ...prevWidgets,
+        widgetObject,
+      ]);
     }
-    console.log("Widgets: ", widgets);
   };
 
   const removeWidget = (id: number) => {
@@ -83,7 +78,6 @@ const Dashboard: React.FC = () => {
     removeWidgetFromLocalStorage(id);
   };
 
-  const [inputMsg, setInputMsg] = useState("");
   const submitMessage = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log("Message: ", inputMsg);
@@ -92,8 +86,12 @@ const Dashboard: React.FC = () => {
 
       if (response) {
         console.log("Adding widgets: ", response);
+        // TODO: when multisteps
         let jOutput = JSON.parse(response[1].content);
-        let id = widgets.length - 1;
+        let id = -1;
+        if (widgets.length > 0) {
+          id = widgets[widgets.length - 1].id;
+        }
 
         for (const widget of jOutput) {
           console.log("Adding widget widget: ", jOutput);

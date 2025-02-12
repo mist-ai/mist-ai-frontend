@@ -28,3 +28,8 @@ export interface TradingViewWidget {
   widget: TradingViewWidgetType;
   props: AdvRTChartProps | MarketDataList | SymbolOverviewChartProps;
 }
+
+export interface TradingViewWidgetComonent {
+  id: number;
+  component: JSX.Element;
+}
