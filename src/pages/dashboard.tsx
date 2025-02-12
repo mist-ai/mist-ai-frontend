@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import SymbolOverviewChart from "../components/trading-view/symbol-overview-chart";
 import AdvRTChart from "../components/trading-view/adv-real-time-chart";
 import StockMarketWidget from "@/components/trading-view/stock-market-widget";
@@ -17,25 +17,56 @@ import { sendMessage } from "@/services/api";
 
 const Dashboard: React.FC = () => {
   const [showChat, setShowChat] = useState(false);
-
   const [widgets, setWidgets] = useState([]);
+  const [nextId, setNextId] = useState(1); // State to keep track of the next id
 
-  const addWidget = (widget: TradingViewWidget, id: number) => {
+  // Load widget inputs from local storage when the component mounts
+  useEffect(() => {
+    const savedWidgetInputs = localStorage.getItem("widgetInputs");
+    if (savedWidgetInputs) {
+      const parsedWidgetInputs = JSON.parse(savedWidgetInputs);
+      if (parsedWidgetInputs.length > 0) {
+        parsedWidgetInputs.forEach((widgetInput) => addWidget(widgetInput));
+        setNextId(parsedWidgetInputs.length + 1);
+      }
+    }
+  }, []);
+
+  // Save widget inputs to local storage whenever they are added or removed
+  useEffect(() => {
+    const widgetInputs = widgets.map((widget) => ({
+      widget: widget.widget,
+      props: widget.props,
+    }));
+    localStorage.setItem("widgetInputs", JSON.stringify(widgetInputs));
+  }, [widgets]);
+
+  const addWidget = (widget: TradingViewWidget) => {
     console.log("Adding widget: ", widget);
+    const id = nextId;
     let widgetObject;
     switch (widget.widget) {
       case TradingViewWidgetType.SymbolOverviewChart:
         widgetObject = {
           id,
+          widget: widget.widget,
+          props: widget.props,
           component: <SymbolOverviewChart symbols={widget.props} />,
         };
         break;
       case TradingViewWidgetType.AdvRTChart:
-        widgetObject = { id, component: <AdvRTChart symbol={widget.props} /> };
+        widgetObject = {
+          id,
+          widget: widget.widget,
+          props: widget.props,
+          component: <AdvRTChart symbol={widget.props} />,
+        };
         break;
       case TradingViewWidgetType.MarketData:
         widgetObject = {
           id,
+          widget: widget.widget,
+          props: widget.props,
           component: <MarketData marketData={widget.props} />,
         };
         break;
@@ -45,6 +76,7 @@ const Dashboard: React.FC = () => {
     console.log("Widget Object: ", widgetObject);
     if (widgetObject) {
       setWidgets((prevWidgets) => [...prevWidgets, widgetObject]);
+      setNextId((prevId) => prevId + 1); // Increment the next id using functional update
     }
     console.log("Widgets: ", widgets);
   };
@@ -61,50 +93,14 @@ const Dashboard: React.FC = () => {
       console.log("Response: ", response);
       if (response) {
         console.log("Adding widgets: ", response);
-        let id = widgets.length;
-        for (const widget of response) {
-          console.log("Adding widget widget: ", widget);
-          id++;
-          addWidget(widget.content, id);
+        let jOutput = JSON.parse(response[1].content);
+        for (const widget of jOutput) {
+          console.log("Adding widget widget: ", jOutput);
+          addWidget(widget);
         }
       }
     });
     setInputMsg("");
-
-    const data = [
-      { widget: "AdvRTChart", props: "SAMP.N0000" },
-      {
-        widget: "SymbolOverviewChart",
-        props: [
-          [
-            "CSELK:SAMP.N0000",
-            "CSELK:JKH.N0000",
-            "CSELK:SINS.N0000",
-            "CSELK:LIOC.N0000",
-          ],
-        ],
-      },
-      {
-        widget: "MarketData",
-        props: [
-          {
-            name: "Indices",
-            originalName: "Indices",
-            symbols: [
-              { name: "CSELK:SAMP.N0000", displayName: "Sampath" },
-              { name: "CSELK:JKH.N0000", displayName: "John Keells" },
-              { name: "CSELK:SINS.N0000", displayName: "Singer" },
-              { name: "CSELK:LIOC.N0000", displayName: "LIOC" },
-            ],
-          },
-          {
-            name: "Conversion",
-            originalName: "Conversion",
-            symbols: [{ name: "FX_IDC:LKRUSD", displayName: "LKR to USD" }],
-          },
-        ],
-      },
-    ];
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
