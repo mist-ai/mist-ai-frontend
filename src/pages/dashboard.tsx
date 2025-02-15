@@ -10,6 +10,8 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { CornerDownLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  Ticker,
+  TickersSliderWidgetProps,
   TradingViewWidget,
   TradingViewWidgetComonent,
   TradingViewWidgetType,
@@ -25,6 +27,8 @@ const Dashboard: React.FC = () => {
   const [showChat, setShowChat] = useState<boolean>(false);
   const [widgets, setWidgets] = useState<TradingViewWidgetComonent[]>([]);
   const [inputMsg, setInputMsg] = useState("");
+  const [tickerSliderTickers, setTickerSliderTickers] = useState<Ticker[]>([]);
+  useState<TickersSliderWidgetProps>();
   const isMounted = useRef(false);
 
   // Load widgets from local storage when the component mounts
@@ -61,6 +65,9 @@ const Dashboard: React.FC = () => {
           component: <MarketData marketData={widget.props} />,
         };
         break;
+      case TradingViewWidgetType.TickersSlider:
+        setTickerSliderTickers(widget.props);
+        break;
       default:
         console.error("Unknown widget type: ", widget.widget);
     }
@@ -80,15 +87,14 @@ const Dashboard: React.FC = () => {
 
   const submitMessage = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("Message: ", inputMsg);
-    sendMessage(inputMsg, "widget").then((response) => {
-      console.log("Response: ", response);
 
+    sendMessage(inputMsg, "widget").then((response) => {
       if (response) {
         console.log("Adding widgets: ", response);
         // TODO: when multisteps
         let jOutput = JSON.parse(response[1].content);
         let id = -1;
+        console.log("jOutput:", jOutput);
         if (widgets.length > 0) {
           id = widgets[widgets.length - 1].id;
         }
@@ -100,6 +106,11 @@ const Dashboard: React.FC = () => {
           addWidget(widget);
           console.log(id, "Widget Added from submitMSg: ", widget);
           saveWidgetToLocalStorage(widget);
+
+          // Reload the page if the widget is TickersSlider to apply the new tickers
+          if (widget.widget === TradingViewWidgetType.TickersSlider) {
+            window.location.reload();
+          }
         }
       }
     });
@@ -162,9 +173,12 @@ const Dashboard: React.FC = () => {
           </div>
         </>
       )}
-      <div className="w-full mb-4">
-        <TickersSlider />
-      </div>
+
+      {tickerSliderTickers.length > 0 && (
+        <div className="w-full mb-4">
+          <TickersSlider tickers={tickerSliderTickers} />
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-4 justify-center">
         {widgets.map((widget) => (
