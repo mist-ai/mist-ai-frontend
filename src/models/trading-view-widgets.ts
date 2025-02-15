@@ -3,6 +3,7 @@ export enum TradingViewWidgetType {
   MarketData = "MarketData",
   StockMarketWidget = "StockMarketWidget",
   SymbolOverviewChart = "SymbolOverviewChart",
+  TickersSlider = "TickersSlider",
 }
 
 export interface AdvRTChartProps {
@@ -32,4 +33,16 @@ export interface TradingViewWidget {
 export interface TradingViewWidgetComonent {
   id: number;
   component: JSX.Element;
+}
+
+/**
+ * Tickers Slider Widget
+ */
+export interface Ticker {
+  proName: string;
+  title: string;
+}
+
+export interface TickersSliderWidgetProps {
+  tickers: Ticker[];
 }
