@@ -7,6 +7,8 @@ const agentId = import.meta.env.VITE_LETTA_AGENT_ID;
 const ipsAgentId = import.meta.env.VITE_LETTA_IPS_AGENT_ID;
 const widgetAgentId = import.meta.env.VITE_LETTA_WIDGET_AGENT_ID;
 const analysisAgentId = import.meta.env.VITE_LETTA_ANALYSIS_AGENT_ID;
+const newsAgentId = import.meta.env.VITE_LETTA_NEWS_AGENT_ID;
+const ioAgentId = import.meta.env.VITE_LETTA_IO_AGENT_ID;
 
 export const fetchMessages = async (
   limit: number,
@@ -19,6 +21,12 @@ export const fetchMessages = async (
       break;
     case "call_analysis_agent":
       id = analysisAgentId;
+      break;
+    case "call_news_agent":
+      id = newsAgentId;
+      break;
+    case "call_io_agent":
+      id = ioAgentId;
       break;
   }
   const response = await fetch(`api/agents/${id}/messages?limit=${limit}`, {
