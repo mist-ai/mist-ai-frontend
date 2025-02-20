@@ -6,17 +6,27 @@ import {
 const agentId = import.meta.env.VITE_LETTA_AGENT_ID;
 const ipsAgentId = import.meta.env.VITE_LETTA_IPS_AGENT_ID;
 const widgetAgentId = import.meta.env.VITE_LETTA_WIDGET_AGENT_ID;
+const analysisAgentId = import.meta.env.VITE_LETTA_ANALYSIS_AGENT_ID;
 
-export const fetchMessages = async (limit: number) => {
-  const response = await fetch(
-    `api/agents/${agentId}/messages?limit=${limit}`,
-    {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    }
-  );
+export const fetchMessages = async (
+  limit: number,
+  agent: string = "orchestrator"
+) => {
+  let id = agentId;
+  switch (agent) {
+    case "call_ips":
+      id = ipsAgentId;
+      break;
+    case "call_analysis_agent":
+      id = analysisAgentId;
+      break;
+  }
+  const response = await fetch(`api/agents/${id}/messages?limit=${limit}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 
   const data: LettaMessage[] = await response.json();
   return data;
