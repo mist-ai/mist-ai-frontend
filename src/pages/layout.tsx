@@ -18,7 +18,6 @@ import {
 import React from "react";
 import { Link } from "react-router-dom";
 
-
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="grid h-screen w-full pl-[56px]">
@@ -48,7 +47,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Link to='/chat'>
+              <Link to="/chat">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -65,14 +64,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-lg"
-                aria-label="API"
-              >
-                <Code2 className="size-5" />
-              </Button>
+              <Link to="/graph">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-lg"
+                  aria-label="API"
+                >
+                  <Code2 className="size-5" />
+                </Button>
+              </Link>
             </TooltipTrigger>
             <TooltipContent side="right" sideOffset={5}>
               API

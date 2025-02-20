@@ -45,6 +45,8 @@ import "./chat.scss";
 import agentIcon from "../assets/agent.webp";
 import processGif from "../assets/process1.gif";
 import syncIcon from "../assets/sync.png";
+import { Background, ReactFlow } from "@xyflow/react";
+import { labelExtractor } from "@/services/other";
 
 const Chat: React.FC = () => {
   const [messages, setMessages] = useState<LettaMessage[]>([]);
@@ -52,8 +54,11 @@ const Chat: React.FC = () => {
   const [notifier, setNotifier] = useState<string | null>(null);
   const [inputMsg, setInputMsg] = useState<string>("");
 
+  const [nodes, setNodes] = useState([]);
+  const [edges, setEdges] = useState([]);
+
   useEffect(() => {
-    fetchMessages(55).then((data) => {
+    fetchMessages(55).then(async (data) => {
       // Filter out unnecessary messages
       const filteredData = data.filter((message) => {
         if (message.message_type === MessageType.System) {
@@ -82,8 +87,106 @@ const Chat: React.FC = () => {
           ];
         }
       }
-
       setMessages(processedMessages);
+      let tool: string | null = null;
+
+      const lastMsgs = processedMessages.slice(-10);
+      const nodes = [];
+      let nodeCount = 0;
+
+      for (let i = 0; i < lastMsgs.length; i++) {
+        const message = lastMsgs[i];
+        let nodeType = "default";
+        let label: string = message.message_type;
+        nodeCount++;
+        let style = {};
+
+        console.log("message: ", message);
+
+        switch (message.message_type) {
+          case MessageType.User:
+            nodeType = "input";
+            label = labelExtractor(message);
+            style = { borderRadius: "30px" };
+            tool = null;
+            break;
+          case MessageType.Assistant:
+            nodeType = "output";
+            label = labelExtractor(message);
+            tool = null;
+            break;
+          case MessageType.Reasoning:
+            nodeType = "default";
+            label = labelExtractor(message);
+            tool = null;
+            break;
+          case MessageType.ToolCall:
+            nodeType = "default";
+            label = labelExtractor(message);
+            tool = message.tool_call.name;
+            break;
+          default:
+            label = labelExtractor(message);
+        }
+
+        nodes.push({
+          id: nodeCount.toString(),
+          data: { label },
+          position: { x: 30, y: i * 100 },
+          type: nodeType,
+          style,
+        });
+
+        const checkDate = message.date ? new Date(message.date).getTime() : 0;
+        let count: number = 0;
+
+        if (tool) {
+          const toolMessages = await fetchMessages(10, tool);
+
+          for (let i = 1; i < toolMessages.length; i++) {
+            if (toolMessages[i].message_type === MessageType.Reasoning) {
+              // Swap with the previous message
+              [toolMessages[i], toolMessages[i - 1]] = [
+                toolMessages[i - 1],
+                toolMessages[i],
+              ];
+            }
+          }
+
+          console.log("toolMessages: ", toolMessages);
+          toolMessages.forEach((toolMessage, index) => {
+            const toolMessageDate = toolMessage.date
+              ? new Date(toolMessage.date).getTime()
+              : 0;
+            if (toolMessageDate >= checkDate) {
+              count++;
+              nodeCount++;
+              nodes.push({
+                id: nodeCount.toString(),
+                data: { label: labelExtractor(toolMessage) },
+                position: { x: 30 + count * 170, y: i * 100 },
+                type: "default",
+                style: { backgroundColor: "#d2dff9" },
+              });
+            }
+          });
+          tool = null;
+        }
+      }
+
+      let edges = [];
+
+      for (let i = 1; i < nodeCount; i++) {
+        edges.push({
+          id: i.toString(),
+          source: i.toString(),
+          target: (i + 1).toString(),
+        });
+      }
+      setEdges(edges);
+
+      console.log("nodes: ", nodes);
+      setNodes(nodes);
     });
   }, []);
 
@@ -228,322 +331,87 @@ const Chat: React.FC = () => {
   };
 
   return (
-      <div className="flex flex-col">
-        <header className="sticky top-0 z-10 flex h-[57px] items-center gap-1 border-b bg-background px-4">
-          <h1 className="text-xl font-semibold">MIST.ai</h1>
-          <Drawer>
-            <DrawerTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
-                <Settings className="size-4" />
-                <span className="sr-only">Settings</span>
-              </Button>
-            </DrawerTrigger>
-            <DrawerContent className="max-h-[80vh]">
-              <DrawerHeader>
-                <DrawerTitle>Configuration</DrawerTitle>
-                <DrawerDescription>
-                  Configure the settings for the model and messages.
-                </DrawerDescription>
-              </DrawerHeader>
-              <form className="grid w-full items-start gap-6 overflow-auto p-4 pt-0">
-                <fieldset className="grid gap-6 rounded-lg border p-4">
-                  <legend className="-ml-1 px-1 text-sm font-medium">
-                    Settings
-                  </legend>
-                  <div className="grid gap-3">
-                    <Label htmlFor="model">Model</Label>
-                    <Select>
-                      <SelectTrigger
-                        id="model"
-                        className="items-start [&_[data-description]]:hidden"
-                      >
-                        <SelectValue placeholder="Select a model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="genesis">
-                          <div className="flex items-start gap-3 text-muted-foreground">
-                            <Rabbit className="size-5" />
-                            <div className="grid gap-0.5">
-                              <p>
-                                Neural{" "}
-                                <span className="font-medium text-foreground">
-                                  Genesis
-                                </span>
-                              </p>
-                              <p className="text-xs" data-description>
-                                Our fastest model for general use cases.
-                              </p>
-                            </div>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="explorer">
-                          <div className="flex items-start gap-3 text-muted-foreground">
-                            <Bird className="size-5" />
-                            <div className="grid gap-0.5">
-                              <p>
-                                Neural{" "}
-                                <span className="font-medium text-foreground">
-                                  Explorer
-                                </span>
-                              </p>
-                              <p className="text-xs" data-description>
-                                Performance and speed for efficiency.
-                              </p>
-                            </div>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="quantum">
-                          <div className="flex items-start gap-3 text-muted-foreground">
-                            <Turtle className="size-5" />
-                            <div className="grid gap-0.5">
-                              <p>
-                                Neural{" "}
-                                <span className="font-medium text-foreground">
-                                  Quantum
-                                </span>
-                              </p>
-                              <p className="text-xs" data-description>
-                                The most powerful model for complex
-                                computations.
-                              </p>
-                            </div>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-3">
-                    <Label htmlFor="temperature">Temperature</Label>
-                    <Input id="temperature" type="number" placeholder="0.4" />
-                  </div>
-                  <div className="grid gap-3">
-                    <Label htmlFor="top-p">Top P</Label>
-                    <Input id="top-p" type="number" placeholder="0.7" />
-                  </div>
-                  <div className="grid gap-3">
-                    <Label htmlFor="top-k">Top K</Label>
-                    <Input id="top-k" type="number" placeholder="0.0" />
-                  </div>
-                </fieldset>
-                <fieldset className="grid gap-6 rounded-lg border p-4">
-                  <legend className="-ml-1 px-1 text-sm font-medium">
-                    Messages
-                  </legend>
-                  <div className="grid gap-3">
-                    <Label htmlFor="role">Role</Label>
-                    <Select defaultValue="system">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="system">System</SelectItem>
-                        <SelectItem value="user">User</SelectItem>
-                        <SelectItem value="assistant">Assistant</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-3">
-                    <Label htmlFor="content">Content</Label>
-                    <Textarea id="content" placeholder="You are a..." />
-                  </div>
-                </fieldset>
-              </form>
-            </DrawerContent>
-          </Drawer>
-          <Button
-            variant="outline"
-            size="sm"
-            className="ml-auto gap-1.5 text-sm"
-          >
-            <Share className="size-3.5" />
-            Share
-          </Button>
-        </header>
-        <main className="grid flex-1 gap-4 overflow-auto p-4 md:grid-cols-2 lg:grid-cols-3">
-          <div
-            className="relative hidden flex-col items-start gap-8 md:flex"
-            x-chunk="dashboard-03-chunk-0"
-          >
-            <form className="grid w-full items-start gap-6">
-              <fieldset className="grid gap-6 rounded-lg border p-4">
-                <legend className="-ml-1 px-1 text-sm font-medium">
-                  Settings
-                </legend>
-                <div className="grid gap-3">
-                  <Label htmlFor="model">Model</Label>
-                  <Select>
-                    <SelectTrigger
-                      id="model"
-                      className="items-start [&_[data-description]]:hidden"
-                    >
-                      <SelectValue placeholder="Select a model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="genesis">
-                        <div className="flex items-start gap-3 text-muted-foreground">
-                          <Rabbit className="size-5" />
-                          <div className="grid gap-0.5">
-                            <p>
-                              Neural{" "}
-                              <span className="font-medium text-foreground">
-                                Genesis
-                              </span>
-                            </p>
-                            <p className="text-xs" data-description>
-                              Our fastest model for general use cases.
-                            </p>
-                          </div>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="explorer">
-                        <div className="flex items-start gap-3 text-muted-foreground">
-                          <Bird className="size-5" />
-                          <div className="grid gap-0.5">
-                            <p>
-                              Neural{" "}
-                              <span className="font-medium text-foreground">
-                                Explorer
-                              </span>
-                            </p>
-                            <p className="text-xs" data-description>
-                              Performance and speed for efficiency.
-                            </p>
-                          </div>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="quantum">
-                        <div className="flex items-start gap-3 text-muted-foreground">
-                          <Turtle className="size-5" />
-                          <div className="grid gap-0.5">
-                            <p>
-                              Neural{" "}
-                              <span className="font-medium text-foreground">
-                                Quantum
-                              </span>
-                            </p>
-                            <p className="text-xs" data-description>
-                              The most powerful model for complex computations.
-                            </p>
-                          </div>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-3">
-                  <Label htmlFor="temperature">Temperature</Label>
-                  <Input id="temperature" type="number" placeholder="0.4" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-3">
-                    <Label htmlFor="top-p">Top P</Label>
-                    <Input id="top-p" type="number" placeholder="0.7" />
-                  </div>
-                  <div className="grid gap-3">
-                    <Label htmlFor="top-k">Top K</Label>
-                    <Input id="top-k" type="number" placeholder="0.0" />
-                  </div>
-                </div>
-              </fieldset>
-              <fieldset className="grid gap-6 rounded-lg border p-4">
-                <legend className="-ml-1 px-1 text-sm font-medium">
-                  Messages
-                </legend>
-                <div className="grid gap-3">
-                  <Label htmlFor="role">Role</Label>
-                  <Select defaultValue="system">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="system">System</SelectItem>
-                      <SelectItem value="user">User</SelectItem>
-                      <SelectItem value="assistant">Assistant</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-3">
-                  <Label htmlFor="content">Content</Label>
-                  <Textarea
-                    id="content"
-                    placeholder="You are a..."
-                    className="min-h-[9.5rem]"
-                  />
-                </div>
-              </fieldset>
-            </form>
-          </div>
-          <div className="relative flex max-h-[90vh] min-h-[50vh] flex-col rounded-xl bg-muted/50 p-4 lg:col-span-2">
-            <div className="flex-1 pb-12 pr-2 overflow-auto">
-              {messages.map((message, index) => (
+    <div className="flex flex-col">
+      <main className="grid flex-1 gap-4 overflow-auto p-4 md:grid-cols-2 lg:grid-cols-3">
+        <div
+          className="relative hidden flex-col items-start gap-8 md:flex"
+          x-chunk="dashboard-03-chunk-0"
+        >
+          <ReactFlow nodes={nodes} edges={edges}>
+            <Background />
+          </ReactFlow>
+        </div>
+        <div className="relative flex max-h-[90vh] min-h-[50vh] flex-col rounded-xl bg-muted/50 p-4 lg:col-span-2">
+          <div className="flex-1 pb-12 pr-2 overflow-auto">
+            {messages.map((message, index) => (
+              <div
+                key={index}
+                className={`grid gap-2 msg-outer-div msg-outer-div-${message.message_type}`}
+              >
                 <div
-                  key={index}
-                  className={`grid gap-2 msg-outer-div msg-outer-div-${message.message_type}`}
+                  className={`grid gap-2 msg-container-${message.message_type}`}
                 >
-                  <div
-                    className={`grid gap-2 msg-container-${message.message_type}`}
-                  >
-                    <>{renderMessageContent(message)}</>
-                  </div>
+                  <>{renderMessageContent(message)}</>
                 </div>
-              ))}
-              {notifier && (
-                <div
-                  className="p-2 pr-6 rounded-lg ml-2 mt-4 flex-row items-center 
-                inline-flex"
-                >
-                  {" "}
-                  <img src={processGif} width="53px" />
-                  <div className="pl-4"> {notifier} </div>
-                </div>
-              )}
-              <div ref={messageEndRef} />
-            </div>
-
-            <form
-              className="relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring"
-              x-chunk="dashboard-03-chunk-1"
-              onSubmit={submitMessage}
-            >
-              <Label htmlFor="message" className="sr-only">
-                Message
-              </Label>
-              <Textarea
-                id="message"
-                value={inputMsg}
-                onChange={(e) => setInputMsg(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type your message here..."
-                className="min-h-12 resize-none border-0 p-3 shadow-none focus-visible:ring-0"
-              />
-              <div className="flex items-center p-3 pt-0">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <Paperclip className="size-4" />
-                      <span className="sr-only">Attach file</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">Attach File</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <Mic className="size-4" />
-                      <span className="sr-only">Use Microphone</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">Use Microphone</TooltipContent>
-                </Tooltip>
-                <Button type="submit" size="sm" className="ml-auto gap-1.5">
-                  Send Message
-                  <CornerDownLeft className="size-3.5" />
-                </Button>
               </div>
-            </form>
+            ))}
+            {notifier && (
+              <div
+                className="p-2 pr-6 rounded-lg ml-2 mt-4 flex-row items-center 
+                inline-flex"
+              >
+                {" "}
+                <img src={processGif} width="53px" />
+                <div className="pl-4"> {notifier} </div>
+              </div>
+            )}
+            <div ref={messageEndRef} />
           </div>
-        </main>
-      </div>
+
+          <form
+            className="relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring"
+            x-chunk="dashboard-03-chunk-1"
+            onSubmit={submitMessage}
+          >
+            <Label htmlFor="message" className="sr-only">
+              Message
+            </Label>
+            <Textarea
+              id="message"
+              value={inputMsg}
+              onChange={(e) => setInputMsg(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type your message here..."
+              className="min-h-12 resize-none border-0 p-3 shadow-none focus-visible:ring-0"
+            />
+            <div className="flex items-center p-3 pt-0">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Paperclip className="size-4" />
+                    <span className="sr-only">Attach file</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">Attach File</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Mic className="size-4" />
+                    <span className="sr-only">Use Microphone</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">Use Microphone</TooltipContent>
+              </Tooltip>
+              <Button type="submit" size="sm" className="ml-auto gap-1.5">
+                Send Message
+                <CornerDownLeft className="size-3.5" />
+              </Button>
+            </div>
+          </form>
+        </div>
+      </main>
+    </div>
   );
 };
 
