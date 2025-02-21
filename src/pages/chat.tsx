@@ -90,7 +90,7 @@ const Chat: React.FC = () => {
       setMessages(processedMessages);
       let tool: string | null = null;
 
-      const lastMsgs = processedMessages.slice(-10);
+      const lastMsgs = processedMessages.slice(-30);
       const nodes = [];
       let nodeCount = 0;
 
@@ -139,6 +139,7 @@ const Chat: React.FC = () => {
 
         const checkDate = message.date ? new Date(message.date).getTime() : 0;
         let count: number = 0;
+        let ts = 0;
 
         if (tool) {
           const toolMessages = await fetchMessages(10, tool);
@@ -163,7 +164,7 @@ const Chat: React.FC = () => {
               nodeCount++;
               nodes.push({
                 id: nodeCount.toString(),
-                data: { label: labelExtractor(toolMessage) },
+                data: { label: labelExtractor(toolMessage, true) },
                 position: { x: 30 + count * 170, y: i * 100 },
                 type: "default",
                 style: { backgroundColor: "#d2dff9" },
