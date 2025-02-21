@@ -1,34 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
-import Layout from "./layout";
 import { Button } from "@/components/ui/button";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Bird,
-  CornerDownLeft,
-  Mic,
-  Paperclip,
-  Rabbit,
-  Settings,
-  Share,
-  Turtle,
-} from "lucide-react";
+import { CornerDownLeft, Mic, Paperclip } from "lucide-react";
 import {
   Tooltip,
   TooltipTrigger,
@@ -175,6 +149,9 @@ const Chat: React.FC = () => {
         }
       }
 
+      setNodes(nodes);
+
+      // Create edges
       let edges = [];
 
       for (let i = 1; i < nodeCount; i++) {
@@ -185,9 +162,6 @@ const Chat: React.FC = () => {
         });
       }
       setEdges(edges);
-
-      console.log("nodes: ", nodes);
-      setNodes(nodes);
     });
   }, []);
 
