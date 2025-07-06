@@ -118,14 +118,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-xl h-11 w-11 hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-105"
-                aria-label="Documentation"
-              >
-                <Book className="size-5" />
-              </Button>
+              <Link to="/documentation">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`rounded-xl h-11 w-11 transition-all duration-200 hover:scale-105 ${
+                    isActive("/documentation")
+                      ? "bg-primary/20 text-primary hover:bg-primary/25"
+                      : "hover:bg-primary/10 hover:text-primary"
+                  }`}
+                  aria-label="Documentation"
+                >
+                  <Book className="size-5" />
+                </Button>
+              </Link>
             </TooltipTrigger>
             <TooltipContent
               side="right"

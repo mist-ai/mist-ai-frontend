@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Dashboard from "./pages/dashboard";
 import SettingsPage from "./pages/settings";
 import Graph from "./pages/graph";
+import DocumentationPage from "./pages/documentation";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
             <Route path="/chat" element={<Chat />} />
             <Route path="/graph" element={<Graph />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/documentation" element={<DocumentationPage />} />
           </Routes>
         </Layout>
       </Router>
