@@ -174,7 +174,7 @@ const Chat: React.FC = () => {
   const renderMessageContent = (message: LettaMessage) => {
     switch (message.message_type) {
       case MessageType.User:
-        return message.content;
+        return <div className="msg-send-message">{message.content}</div>;
 
       case MessageType.Assistant:
         return (
@@ -183,14 +183,25 @@ const Chat: React.FC = () => {
 
       case MessageType.ToolCall:
         return (
-          <div className="msg-ips-call bg-blue-50 p-2 rounded-tl-xl rounded-tr-xl">
-            <div className="flex row items-center gap-2">
-              <img src={agentIcon} width={30} alt="Agent Logo" />
-              <b>{message.tool_call.name}: </b>
+          <div className="msg-ips-call">
+            <div className="flex row items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                <img
+                  src={agentIcon}
+                  width={24}
+                  alt="Agent Logo"
+                  className="rounded-full"
+                />
+              </div>
+              <span className="font-semibold text-blue-700">
+                {message.tool_call.name}
+              </span>
             </div>
-            <div className="pl-10 text-gray-500">
-              <b>prompt: </b>
-              {JSON.parse(message.tool_call.arguments ?? "{}").prompt}
+            <div className="pl-11 text-gray-600">
+              <span className="font-medium">Prompt: </span>
+              <span className="text-sm">
+                {JSON.parse(message.tool_call.arguments ?? "{}").prompt}
+              </span>
             </div>
           </div>
         );
@@ -216,11 +227,18 @@ const Chat: React.FC = () => {
         ) {
           toolReturnMessage = message.tool_return;
           return (
-            <div className="msg-reasoning pl-12 text-gray-500 bg-blue-50 p-2 pt-0 rounded-bl-xl rounded-br-xl">
+            <div className="tool-return-container">
               {toolReturnMessage !== "None" && toolReturnMessage !== null ? (
                 <>
-                  <b>Response</b>:{" "}
-                  <ReactMarkdown>{toolReturnMessage}</ReactMarkdown>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="font-semibold text-blue-700">
+                      Response
+                    </span>
+                  </div>
+                  <ReactMarkdown className="text-gray-700">
+                    {toolReturnMessage}
+                  </ReactMarkdown>
                 </>
               ) : (
                 ""
@@ -253,6 +271,12 @@ const Chat: React.FC = () => {
     const response = await postMessage(inputContent);
 
     const reader = response.body?.getReader();
+    if (!reader) {
+      console.error("Failed to get reader from response");
+      setNotifier(null);
+      return;
+    }
+
     const decoder = new TextDecoder();
     let buffer = "";
 
@@ -306,8 +330,8 @@ const Chat: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col">
-      <main className="grid flex-1 gap-4 overflow-auto p-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <main className="grid flex-1 gap-6 overflow-auto p-6 md:grid-cols-2 lg:grid-cols-3">
         <div
           className="relative hidden flex-col items-start gap-8 md:flex"
           x-chunk="dashboard-03-chunk-0"
@@ -316,35 +340,31 @@ const Chat: React.FC = () => {
             <Background />
           </ReactFlow>
         </div>
-        <div className="relative flex max-h-[90vh] min-h-[50vh] flex-col rounded-xl bg-muted/50 p-4 lg:col-span-2">
-          <div className="flex-1 pb-12 pr-2 overflow-auto">
+        <div className="relative flex max-h-[90vh] min-h-[50vh] flex-col chat-container p-6 lg:col-span-2">
+          <div className="flex-1 pb-12 pr-2 overflow-auto space-y-2">
             {messages.map((message, index) => (
               <div
                 key={index}
-                className={`grid gap-2 msg-outer-div msg-outer-div-${message.message_type}`}
+                className={`msg-outer-div msg-outer-div-${message.message_type}`}
               >
-                <div
-                  className={`grid gap-2 msg-container-${message.message_type}`}
-                >
+                <div className={`msg-container-${message.message_type}`}>
                   <>{renderMessageContent(message)}</>
                 </div>
               </div>
             ))}
             {notifier && (
-              <div
-                className="p-2 pr-6 rounded-lg ml-2 mt-4 flex-row items-center 
-                inline-flex"
-              >
-                {" "}
-                <img src={processGif} width="53px" />
-                <div className="pl-4"> {notifier} </div>
+              <div className="processing-indicator">
+                <div className="flex items-center gap-4">
+                  <img src={processGif} width="48px" className="rounded-lg" />
+                  <div className="font-medium text-orange-800">{notifier}</div>
+                </div>
               </div>
             )}
             <div ref={messageEndRef} />
           </div>
 
           <form
-            className="relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring"
+            className="chat-input-form relative overflow-hidden focus-within:ring-1 focus-within:ring-ring"
             x-chunk="dashboard-03-chunk-1"
             onSubmit={submitMessage}
           >
