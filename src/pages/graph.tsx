@@ -81,15 +81,7 @@ const Graph = () => {
       });
 
       const processedMessages = [...filteredData];
-      // for (let i = 1; i < processedMessages.length; i++) {
-      //   if (processedMessages[i].message_type === MessageType.Reasoning) {
-      //     // Swap with the previous message
-      //     [processedMessages[i], processedMessages[i - 1]] = [
-      //       processedMessages[i - 1],
-      //       processedMessages[i],
-      //     ];
-      //   }
-      // }
+
       // Remove the first message
       processedMessages.shift();
       processedMessages.shift();
