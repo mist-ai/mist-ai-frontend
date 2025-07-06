@@ -29,6 +29,8 @@ const Chat: React.FC = () => {
   const messageEndRef = useRef<HTMLDivElement>(null);
   const [notifier, setNotifier] = useState<string | null>(null);
   const [inputMsg, setInputMsg] = useState<string>("");
+  const [isStreaming, setIsStreaming] = useState<boolean>(false);
+  const messagesRef = useRef<LettaMessage[]>([]);
 
   const [nodes, setNodes] = useState<any[]>([]);
   const [edges, setEdges] = useState<any[]>([]);
@@ -183,7 +185,7 @@ const Chat: React.FC = () => {
     const edges = [];
     for (let i = 1; i < nodeCount; i++) {
       edges.push({
-        id: i.toString(),
+        id: `edge-${i}`,
         source: i.toString(),
         target: (i + 1).toString(),
         type: "smoothstep",
@@ -224,17 +226,54 @@ const Chat: React.FC = () => {
     });
   }, []);
 
-  // Update graph when messages change
-  useEffect(() => {
-    if (messages.length > 0) {
-      console.log("Updating graph with messages:", messages.length);
-      generateGraphData(messages).then(({ nodes, edges }) => {
-        console.log("Generated nodes:", nodes.length, "edges:", edges.length);
-        setNodes(nodes);
-        setEdges(edges);
-      });
+  // Helper function to update graph
+  const updateGraph = async () => {
+    try {
+      console.log("Starting graph generation...");
+      const { nodes, edges } = await generateGraphData(messagesRef.current);
+      console.log(
+        "Graph generation complete - Nodes:",
+        nodes.length,
+        "Edges:",
+        edges.length
+      );
+      setNodes(nodes);
+      setEdges(edges);
+      console.log("Graph state updated successfully");
+    } catch (error) {
+      console.error("Error updating graph:", error);
     }
-  }, [messages]);
+  };
+
+  // Update graph when messages change (non-streaming)
+  useEffect(() => {
+    messagesRef.current = messages; // Keep ref updated
+
+    if (messages.length > 0 && !isStreaming) {
+      console.log("Executing immediate update (not streaming)");
+      updateGraph();
+    }
+  }, [messages, isStreaming]);
+
+  // Interval-based graph updates during streaming
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+
+    if (isStreaming && messages.length > 0) {
+      console.log("Starting 3-second interval updates during streaming");
+      intervalId = setInterval(() => {
+        console.log("Interval update triggered");
+        updateGraph();
+      }, 3000);
+    }
+
+    return () => {
+      if (intervalId) {
+        console.log("Clearing streaming interval");
+        clearInterval(intervalId);
+      }
+    };
+  }, [isStreaming, messages.length]);
 
   // Focus on the latest messages when nodes are updated
   useEffect(() => {
@@ -244,17 +283,19 @@ const Chat: React.FC = () => {
       const lastNode = nodes[lastNodeIndex];
 
       if (lastNode) {
-        // Center the view on the last node with some padding
-        setTimeout(() => {
+        // For real-time updates, use a shorter delay and smoother animation
+        const timeoutId = setTimeout(() => {
           reactFlowInstance.setCenter(
             lastNode.position.x,
             lastNode.position.y,
             {
               zoom: 0.8,
-              duration: 800,
+              duration: 500, // Shorter duration for real-time feel
             }
           );
-        }, 100); // Small delay to ensure nodes are rendered
+        }, 50); // Shorter delay for real-time updates
+
+        return () => clearTimeout(timeoutId);
       }
     }
   }, [nodes, reactFlowInstance]);
@@ -353,12 +394,18 @@ const Chat: React.FC = () => {
     const inputContent: string = inputMsg;
 
     setInputMsg("");
+    setIsStreaming(true);
 
     const inputMessage: UserMessage = {
       message_type: MessageType.User,
       content: inputContent,
     };
-    setMessages((prevMessages) => [...prevMessages, inputMessage]);
+    setMessages((prevMessages) => {
+      const newMessages = [...prevMessages, inputMessage];
+      // Update the ref immediately to ensure graph has latest data
+      messagesRef.current = newMessages;
+      return newMessages;
+    });
 
     setNotifier("MIST AI agent is processing...");
 
@@ -368,6 +415,7 @@ const Chat: React.FC = () => {
     if (!reader) {
       console.error("Failed to get reader from response");
       setNotifier(null);
+      setIsStreaming(false);
       return;
     }
 
@@ -376,7 +424,48 @@ const Chat: React.FC = () => {
 
     while (true) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        setIsStreaming(false);
+        console.log(
+          "Streaming completed - fetching latest messages and updating graph"
+        );
+        // Fetch latest messages and update graph
+        try {
+          const latestMessages = await fetchMessages(55);
+          const filteredData = latestMessages.filter((message) => {
+            if (message.message_type === MessageType.System) {
+              return false;
+            }
+            if (message.message_type === MessageType.User) {
+              try {
+                const content = JSON.parse(message.content);
+                if (content.type === "heartbeat" || content.type === "login") {
+                  return false;
+                }
+              } catch {
+                // If parsing fails, treat content as plain message that needs to be rendered
+              }
+            }
+            return true;
+          });
+
+          // Update messages and messagesRef
+          setMessages(filteredData);
+          messagesRef.current = filteredData;
+
+          // Update graph with latest data
+          setTimeout(() => {
+            updateGraph();
+          }, 200);
+        } catch (error) {
+          console.error("Error fetching latest messages:", error);
+          // Fallback to regular update
+          setTimeout(() => {
+            updateGraph();
+          }, 500);
+        }
+        break;
+      }
 
       buffer += decoder.decode(value, { stream: true });
 
@@ -388,6 +477,48 @@ const Chat: React.FC = () => {
 
         if (line.trim() === "data: [DONE]") {
           setNotifier(null);
+          setIsStreaming(false);
+          console.log(
+            "Received [DONE] - fetching latest messages and updating graph"
+          );
+          // Fetch latest messages and update graph
+          try {
+            const latestMessages = await fetchMessages(55);
+            const filteredData = latestMessages.filter((message) => {
+              if (message.message_type === MessageType.System) {
+                return false;
+              }
+              if (message.message_type === MessageType.User) {
+                try {
+                  const content = JSON.parse(message.content);
+                  if (
+                    content.type === "heartbeat" ||
+                    content.type === "login"
+                  ) {
+                    return false;
+                  }
+                } catch {
+                  // If parsing fails, treat content as plain message that needs to be rendered
+                }
+              }
+              return true;
+            });
+
+            // Update messages and messagesRef
+            setMessages(filteredData);
+            messagesRef.current = filteredData;
+
+            // Update graph with latest data
+            setTimeout(() => {
+              updateGraph();
+            }, 200);
+          } catch (error) {
+            console.error("Error fetching latest messages:", error);
+            // Fallback to regular update
+            setTimeout(() => {
+              updateGraph();
+            }, 500);
+          }
           break;
         }
 
@@ -407,7 +538,22 @@ const Chat: React.FC = () => {
               continue;
             }
             console.log("parsedData: ", parsedData);
-            setMessages((prevMessages) => [...prevMessages, parsedData]);
+            setMessages((prevMessages) => {
+              const newMessages = [...prevMessages, parsedData];
+              // Update the ref immediately to ensure graph has latest data
+              messagesRef.current = newMessages;
+              return newMessages;
+            });
+
+            // Trigger immediate graph update for Assistant messages (final outputs)
+            if (parsedData.message_type === MessageType.Assistant) {
+              console.log(
+                "Assistant message received - triggering graph update"
+              );
+              setTimeout(() => {
+                setIsStreaming(false); // This will trigger the useEffect to update immediately
+              }, 100);
+            }
           } catch (error) {
             console.error("Failed to parse JSON:", error);
           }
@@ -431,6 +577,11 @@ const Chat: React.FC = () => {
           <div className="p-4 border-b border-slate-200/50">
             <h2 className="text-lg font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
               Conversation Flow
+              {isStreaming && (
+                <span className="ml-2 text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full">
+                  Updating...
+                </span>
+              )}
             </h2>
             <p className="text-sm text-slate-600 mt-1">
               Real-time visualization of your AI interaction ({nodes.length}{" "}
@@ -446,6 +597,10 @@ const Chat: React.FC = () => {
                 onInit={setReactFlowInstance}
                 defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
                 attributionPosition="bottom-left"
+                fitView={false}
+                nodesDraggable={false}
+                nodesConnectable={false}
+                elementsSelectable={true}
               >
                 <Background
                   variant={"dots" as any}
