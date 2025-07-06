@@ -30,6 +30,8 @@ const Dashboard: React.FC = () => {
   const [tickerSliderTickers, setTickerSliderTickers] = useState<Ticker[]>([]);
   useState<TickersSliderWidgetProps>();
   const isMounted = useRef(false);
+  const [loadState, setLoadState] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Load widgets from local storage when the component mounts
   useEffect(() => {
@@ -87,6 +89,8 @@ const Dashboard: React.FC = () => {
 
   const submitMessage = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setShowChat(false);
+    setLoadState(true);
 
     sendMessage(inputMsg, "widget").then((response) => {
       if (response) {
@@ -97,6 +101,9 @@ const Dashboard: React.FC = () => {
         console.log("jOutput:", jOutput);
         if (widgets.length > 0) {
           id = widgets[widgets.length - 1].id;
+        }
+        if (jOutput.length === 0) {
+          setErrorMsg(response[0].reasoning);
         }
 
         for (const widget of jOutput) {
@@ -112,6 +119,8 @@ const Dashboard: React.FC = () => {
             window.location.reload();
           }
         }
+
+        setLoadState(false);
       }
     });
     setInputMsg("");
@@ -127,6 +136,31 @@ const Dashboard: React.FC = () => {
   return (
     <div className="p-2">
       <div className="text-lg mb-4 font-semibold">MIST.ai Dashboard</div>
+
+      {errorMsg && (
+        <div className="fixed top-4 right-4 text-white z-50">
+          <div className="p-4 rounded-lg shadow-lg bg-red-200 bg-opacity-90 flex items-center border border-red-500">
+            <span className="text-black max-w-lg">
+              Failed to add widget. Please try again.
+              <br />
+              <b>Reasoning: </b>
+              {errorMsg}
+            </span>
+            <button
+              className="ml-4 bg-transparent border-0 text-black"
+              onClick={() => setErrorMsg(null)}
+            >
+              &times;
+            </button>
+          </div>
+        </div>
+      )}
+
+      {loadState && (
+        <div className="fixed inset-0 bg-black opacity-60 z-40 flex items-center justify-center">
+          <div className="loader ease-linear rounded-full border-4 border-t-4 border-green-400 h-12 w-12"></div>
+        </div>
+      )}
 
       <button
         className="fixed bottom-4 right-4 bg-blue-500 text-white p-3 px-6 rounded-full shadow-lg"

@@ -20,6 +20,7 @@ const SymbolOverviewChart: React.FC<SymbolOverviewChartProps> = (props) => {
         chartOnly: false,
         locale: "en",
         width: "500",
+        height: "450",
         colorTheme: "light",
         autosize: true,
         showVolume: false,

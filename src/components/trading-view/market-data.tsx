@@ -13,7 +13,7 @@ const MarketData: React.FC<MarketDataList> = (props) => {
       script.async = true;
       script.innerHTML = JSON.stringify({
         width: 800,
-        height: 550,
+        height: 450,
         symbolsGroups: props.marketData,
         showSymbolLogo: true,
         isTransparent: false,
