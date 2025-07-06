@@ -21,7 +21,7 @@ const TickersSlider: React.FC<TickersSliderWidgetProps> = (props) => {
       displayMode: "adaptive",
       colorTheme: "light",
       locale: "en",
-      width: "1900",
+      width: "100%",
     });
     document
       .getElementsByClassName("tradingview-widget-container__widget")[0]
@@ -29,8 +29,8 @@ const TickersSlider: React.FC<TickersSliderWidgetProps> = (props) => {
   }, [props.tickers]);
 
   return (
-    <div className="tradingview-widget-container">
-      <div className="tradingview-widget-container__widget"></div>
+    <div className="tradingview-widget-container w-full h-16">
+      <div className="tradingview-widget-container__widget w-full h-full"></div>
     </div>
   );
 };

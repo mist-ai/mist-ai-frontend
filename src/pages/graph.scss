@@ -1,0 +1,94 @@
+/* Elegant Graph Styles */
+.elegant-flow {
+  .react-flow__node {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    &.selected {
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3) !important;
+    }
+  }
+
+  .react-flow__node-input {
+    &:hover {
+      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.2) !important;
+    }
+
+    &.selected {
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3) !important;
+    }
+  }
+
+  .react-flow__node-output {
+    &:hover {
+      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.2) !important;
+    }
+
+    &.selected {
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3) !important;
+    }
+  }
+
+  .react-flow__node-reasoning {
+    &:hover {
+      box-shadow: 0 8px 25px rgba(245, 158, 11, 0.2) !important;
+    }
+
+    &.selected {
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3) !important;
+    }
+  }
+
+  .react-flow__edge {
+    &.animated {
+      stroke-dasharray: 8, 4;
+      animation: dash 2s linear infinite;
+    }
+  }
+
+  .react-flow__controls {
+    button {
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(99, 102, 241, 0.1);
+        color: #6366f1;
+      }
+    }
+  }
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+/* Custom node content styling */
+.react-flow__node div {
+  line-height: 1.4;
+  word-wrap: break-word;
+  text-align: left;
+}
+
+/* Elegant scrollbar for long content */
+.react-flow__node::-webkit-scrollbar {
+  width: 4px;
+}
+
+.react-flow__node::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.react-flow__node::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 2px;
+}
+
+.react-flow__node::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}

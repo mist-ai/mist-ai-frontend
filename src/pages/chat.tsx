@@ -16,10 +16,12 @@ import {
   UserMessage,
 } from "@/models/get-agent-messages-api-response";
 import "./chat.scss";
+import "../pages/graph.scss";
 import agentIcon from "../assets/agent.webp";
 import processGif from "../assets/process1.gif";
 import syncIcon from "../assets/sync.png";
-import { Background, ReactFlow } from "@xyflow/react";
+import { Background, ReactFlow, MiniMap, Controls } from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
 import { labelExtractor } from "@/services/other";
 
 const Chat: React.FC = () => {
@@ -27,9 +29,176 @@ const Chat: React.FC = () => {
   const messageEndRef = useRef<HTMLDivElement>(null);
   const [notifier, setNotifier] = useState<string | null>(null);
   const [inputMsg, setInputMsg] = useState<string>("");
+  const [isStreaming, setIsStreaming] = useState<boolean>(false);
+  const messagesRef = useRef<LettaMessage[]>([]);
 
-  const [nodes, setNodes] = useState([]);
-  const [edges, setEdges] = useState([]);
+  const [nodes, setNodes] = useState<any[]>([]);
+  const [edges, setEdges] = useState<any[]>([]);
+  const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+
+  // Helper functions for elegant node styling
+  const getNodeBackground = (nodeType: string) => {
+    switch (nodeType) {
+      case "input":
+        return "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)";
+      case "output":
+        return "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)";
+      default:
+        return "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)";
+    }
+  };
+
+  const getNodeBorderColor = (nodeType: string) => {
+    switch (nodeType) {
+      case "input":
+        return "#10b981";
+      case "output":
+        return "#6366f1";
+      default:
+        return "#f59e0b";
+    }
+  };
+
+  const getNodeShadow = (nodeType: string) => {
+    switch (nodeType) {
+      case "input":
+        return "rgba(16, 185, 129, 0.15)";
+      case "output":
+        return "rgba(99, 102, 241, 0.15)";
+      default:
+        return "rgba(245, 158, 11, 0.15)";
+    }
+  };
+
+  // Helper function to generate nodes and edges from messages
+  const generateGraphData = async (messages: LettaMessage[]) => {
+    let tool: string | null = null;
+    const lastMsgs = messages.slice(-30);
+    const nodes = [];
+    let nodeCount = 0;
+
+    for (let i = 0; i < lastMsgs.length; i++) {
+      const message = lastMsgs[i];
+      let nodeType = "default";
+      let label: string = message.message_type;
+      nodeCount++;
+      let style = {};
+
+      switch (message.message_type) {
+        case MessageType.User:
+          nodeType = "input";
+          label = labelExtractor(message);
+          style = { borderRadius: "30px" };
+          tool = null;
+          break;
+        case MessageType.Assistant:
+          nodeType = "output";
+          label = labelExtractor(message);
+          tool = null;
+          break;
+        case MessageType.Reasoning:
+          nodeType = "default";
+          label = labelExtractor(message);
+          tool = null;
+          break;
+        case MessageType.ToolCall:
+          nodeType = "default";
+          label = labelExtractor(message);
+          tool = message.tool_call.name || null;
+          break;
+        default:
+          label = labelExtractor(message);
+      }
+
+      nodes.push({
+        id: nodeCount.toString(),
+        data: { label },
+        position: { x: 30, y: i * 120 },
+        type: nodeType,
+        style: {
+          ...style,
+          background: getNodeBackground(nodeType),
+          border: `2px solid ${getNodeBorderColor(nodeType)}`,
+          borderRadius: "12px",
+          padding: "8px 12px",
+          boxShadow: `0 2px 8px ${getNodeShadow(nodeType)}`,
+          color: "#1f2937",
+          fontSize: "12px",
+          fontWeight: "500",
+          minWidth: "140px",
+          maxWidth: "200px",
+        },
+      });
+
+      const checkDate = message.date ? new Date(message.date).getTime() : 0;
+      let count: number = 0;
+
+      if (tool) {
+        try {
+          const toolMessages = await fetchMessages(10, tool);
+
+          for (let i = 1; i < toolMessages.length; i++) {
+            if (toolMessages[i].message_type === MessageType.Reasoning) {
+              [toolMessages[i], toolMessages[i - 1]] = [
+                toolMessages[i - 1],
+                toolMessages[i],
+              ];
+            }
+          }
+
+          toolMessages.forEach((toolMessage) => {
+            const toolMessageDate = toolMessage.date
+              ? new Date(toolMessage.date).getTime()
+              : 0;
+            if (toolMessageDate >= checkDate) {
+              count++;
+              nodeCount++;
+              nodes.push({
+                id: nodeCount.toString(),
+                data: { label: labelExtractor(toolMessage, true) },
+                position: { x: 30 + count * 170, y: i * 120 },
+                type: "default",
+                style: {
+                  background:
+                    "linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 100%)",
+                  border: "2px solid #0ea5e9",
+                  borderRadius: "12px",
+                  padding: "8px 12px",
+                  boxShadow: "0 2px 8px rgba(14, 165, 233, 0.15)",
+                  color: "#1f2937",
+                  fontSize: "12px",
+                  fontWeight: "500",
+                  minWidth: "140px",
+                  maxWidth: "200px",
+                },
+              });
+            }
+          });
+        } catch (error) {
+          console.error("Error fetching tool messages:", error);
+        }
+        tool = null;
+      }
+    }
+
+    // Create edges
+    const edges = [];
+    for (let i = 1; i < nodeCount; i++) {
+      edges.push({
+        id: `edge-${i}`,
+        source: i.toString(),
+        target: (i + 1).toString(),
+        type: "smoothstep",
+        animated: true,
+        style: {
+          stroke: "#6366f1",
+          strokeWidth: 2,
+        },
+      });
+    }
+
+    return { nodes, edges };
+  };
 
   useEffect(() => {
     fetchMessages(55).then(async (data) => {
@@ -52,118 +221,84 @@ const Chat: React.FC = () => {
       });
 
       const processedMessages = [...filteredData];
-      for (let i = 1; i < processedMessages.length; i++) {
-        if (processedMessages[i].message_type === MessageType.Reasoning) {
-          // Swap with the previous message
-          [processedMessages[i], processedMessages[i - 1]] = [
-            processedMessages[i - 1],
-            processedMessages[i],
-          ];
-        }
-      }
+
       setMessages(processedMessages);
-      let tool: string | null = null;
-
-      const lastMsgs = processedMessages.slice(-30);
-      const nodes = [];
-      let nodeCount = 0;
-
-      for (let i = 0; i < lastMsgs.length; i++) {
-        const message = lastMsgs[i];
-        let nodeType = "default";
-        let label: string = message.message_type;
-        nodeCount++;
-        let style = {};
-
-        console.log("message: ", message);
-
-        switch (message.message_type) {
-          case MessageType.User:
-            nodeType = "input";
-            label = labelExtractor(message);
-            style = { borderRadius: "30px" };
-            tool = null;
-            break;
-          case MessageType.Assistant:
-            nodeType = "output";
-            label = labelExtractor(message);
-            tool = null;
-            break;
-          case MessageType.Reasoning:
-            nodeType = "default";
-            label = labelExtractor(message);
-            tool = null;
-            break;
-          case MessageType.ToolCall:
-            nodeType = "default";
-            label = labelExtractor(message);
-            tool = message.tool_call.name;
-            break;
-          default:
-            label = labelExtractor(message);
-        }
-
-        nodes.push({
-          id: nodeCount.toString(),
-          data: { label },
-          position: { x: 30, y: i * 100 },
-          type: nodeType,
-          style,
-        });
-
-        const checkDate = message.date ? new Date(message.date).getTime() : 0;
-        let count: number = 0;
-        let ts = 0;
-
-        if (tool) {
-          const toolMessages = await fetchMessages(10, tool);
-
-          for (let i = 1; i < toolMessages.length; i++) {
-            if (toolMessages[i].message_type === MessageType.Reasoning) {
-              // Swap with the previous message
-              [toolMessages[i], toolMessages[i - 1]] = [
-                toolMessages[i - 1],
-                toolMessages[i],
-              ];
-            }
-          }
-
-          console.log("toolMessages: ", toolMessages);
-          toolMessages.forEach((toolMessage, index) => {
-            const toolMessageDate = toolMessage.date
-              ? new Date(toolMessage.date).getTime()
-              : 0;
-            if (toolMessageDate >= checkDate) {
-              count++;
-              nodeCount++;
-              nodes.push({
-                id: nodeCount.toString(),
-                data: { label: labelExtractor(toolMessage, true) },
-                position: { x: 30 + count * 170, y: i * 100 },
-                type: "default",
-                style: { backgroundColor: "#d2dff9" },
-              });
-            }
-          });
-          tool = null;
-        }
-      }
-
-      setNodes(nodes);
-
-      // Create edges
-      let edges = [];
-
-      for (let i = 1; i < nodeCount; i++) {
-        edges.push({
-          id: i.toString(),
-          source: i.toString(),
-          target: (i + 1).toString(),
-        });
-      }
-      setEdges(edges);
     });
   }, []);
+
+  // Helper function to update graph
+  const updateGraph = async () => {
+    try {
+      console.log("Starting graph generation...");
+      const { nodes, edges } = await generateGraphData(messagesRef.current);
+      console.log(
+        "Graph generation complete - Nodes:",
+        nodes.length,
+        "Edges:",
+        edges.length
+      );
+      setNodes(nodes);
+      setEdges(edges);
+      console.log("Graph state updated successfully");
+    } catch (error) {
+      console.error("Error updating graph:", error);
+    }
+  };
+
+  // Update graph when messages change (non-streaming)
+  useEffect(() => {
+    messagesRef.current = messages; // Keep ref updated
+
+    if (messages.length > 0 && !isStreaming) {
+      console.log("Executing immediate update (not streaming)");
+      updateGraph();
+    }
+  }, [messages, isStreaming]);
+
+  // Interval-based graph updates during streaming
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+
+    if (isStreaming && messages.length > 0) {
+      console.log("Starting 3-second interval updates during streaming");
+      intervalId = setInterval(() => {
+        console.log("Interval update triggered");
+        updateGraph();
+      }, 3000);
+    }
+
+    return () => {
+      if (intervalId) {
+        console.log("Clearing streaming interval");
+        clearInterval(intervalId);
+      }
+    };
+  }, [isStreaming, messages.length]);
+
+  // Focus on the latest messages when nodes are updated
+  useEffect(() => {
+    if (reactFlowInstance && nodes.length > 0) {
+      // Get the last node to focus on
+      const lastNodeIndex = nodes.length - 1;
+      const lastNode = nodes[lastNodeIndex];
+
+      if (lastNode) {
+        // For real-time updates, use a shorter delay and smoother animation
+        const timeoutId = setTimeout(() => {
+          reactFlowInstance.setCenter(
+            lastNode.position.x,
+            lastNode.position.y,
+            {
+              zoom: 0.8,
+              duration: 500, // Shorter duration for real-time feel
+            }
+          );
+        }, 50); // Shorter delay for real-time updates
+
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  }, [nodes, reactFlowInstance]);
 
   useEffect(() => {
     if (messageEndRef.current) {
@@ -174,7 +309,7 @@ const Chat: React.FC = () => {
   const renderMessageContent = (message: LettaMessage) => {
     switch (message.message_type) {
       case MessageType.User:
-        return message.content;
+        return <div className="msg-send-message">{message.content}</div>;
 
       case MessageType.Assistant:
         return (
@@ -183,14 +318,25 @@ const Chat: React.FC = () => {
 
       case MessageType.ToolCall:
         return (
-          <div className="msg-ips-call bg-blue-50 p-2 rounded-tl-xl rounded-tr-xl">
-            <div className="flex row items-center gap-2">
-              <img src={agentIcon} width={30} alt="Agent Logo" />
-              <b>{message.tool_call.name}: </b>
+          <div className="msg-ips-call">
+            <div className="flex row items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                <img
+                  src={agentIcon}
+                  width={24}
+                  alt="Agent Logo"
+                  className="rounded-full"
+                />
+              </div>
+              <span className="font-semibold text-blue-700">
+                {message.tool_call.name}
+              </span>
             </div>
-            <div className="pl-10 text-gray-500">
-              <b>prompt: </b>
-              {JSON.parse(message.tool_call.arguments ?? "{}").prompt}
+            <div className="pl-11 text-gray-600">
+              <span className="font-medium">Prompt: </span>
+              <span className="text-sm">
+                {JSON.parse(message.tool_call.arguments ?? "{}").prompt}
+              </span>
             </div>
           </div>
         );
@@ -216,11 +362,18 @@ const Chat: React.FC = () => {
         ) {
           toolReturnMessage = message.tool_return;
           return (
-            <div className="msg-reasoning pl-12 text-gray-500 bg-blue-50 p-2 pt-0 rounded-bl-xl rounded-br-xl">
+            <div className="tool-return-container">
               {toolReturnMessage !== "None" && toolReturnMessage !== null ? (
                 <>
-                  <b>Response</b>:{" "}
-                  <ReactMarkdown>{toolReturnMessage}</ReactMarkdown>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="font-semibold text-blue-700">
+                      Response
+                    </span>
+                  </div>
+                  <ReactMarkdown className="text-gray-700">
+                    {toolReturnMessage}
+                  </ReactMarkdown>
                 </>
               ) : (
                 ""
@@ -241,24 +394,78 @@ const Chat: React.FC = () => {
     const inputContent: string = inputMsg;
 
     setInputMsg("");
+    setIsStreaming(true);
 
     const inputMessage: UserMessage = {
       message_type: MessageType.User,
       content: inputContent,
     };
-    setMessages((prevMessages) => [...prevMessages, inputMessage]);
+    setMessages((prevMessages) => {
+      const newMessages = [...prevMessages, inputMessage];
+      // Update the ref immediately to ensure graph has latest data
+      messagesRef.current = newMessages;
+      return newMessages;
+    });
 
     setNotifier("MIST AI agent is processing...");
 
     const response = await postMessage(inputContent);
 
     const reader = response.body?.getReader();
+    if (!reader) {
+      console.error("Failed to get reader from response");
+      setNotifier(null);
+      setIsStreaming(false);
+      return;
+    }
+
     const decoder = new TextDecoder();
     let buffer = "";
 
     while (true) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        setIsStreaming(false);
+        console.log(
+          "Streaming completed - fetching latest messages and updating graph"
+        );
+        // Fetch latest messages and update graph
+        try {
+          const latestMessages = await fetchMessages(55);
+          const filteredData = latestMessages.filter((message) => {
+            if (message.message_type === MessageType.System) {
+              return false;
+            }
+            if (message.message_type === MessageType.User) {
+              try {
+                const content = JSON.parse(message.content);
+                if (content.type === "heartbeat" || content.type === "login") {
+                  return false;
+                }
+              } catch {
+                // If parsing fails, treat content as plain message that needs to be rendered
+              }
+            }
+            return true;
+          });
+
+          // Update messages and messagesRef
+          setMessages(filteredData);
+          messagesRef.current = filteredData;
+
+          // Update graph with latest data
+          setTimeout(() => {
+            updateGraph();
+          }, 200);
+        } catch (error) {
+          console.error("Error fetching latest messages:", error);
+          // Fallback to regular update
+          setTimeout(() => {
+            updateGraph();
+          }, 500);
+        }
+        break;
+      }
 
       buffer += decoder.decode(value, { stream: true });
 
@@ -270,6 +477,48 @@ const Chat: React.FC = () => {
 
         if (line.trim() === "data: [DONE]") {
           setNotifier(null);
+          setIsStreaming(false);
+          console.log(
+            "Received [DONE] - fetching latest messages and updating graph"
+          );
+          // Fetch latest messages and update graph
+          try {
+            const latestMessages = await fetchMessages(55);
+            const filteredData = latestMessages.filter((message) => {
+              if (message.message_type === MessageType.System) {
+                return false;
+              }
+              if (message.message_type === MessageType.User) {
+                try {
+                  const content = JSON.parse(message.content);
+                  if (
+                    content.type === "heartbeat" ||
+                    content.type === "login"
+                  ) {
+                    return false;
+                  }
+                } catch {
+                  // If parsing fails, treat content as plain message that needs to be rendered
+                }
+              }
+              return true;
+            });
+
+            // Update messages and messagesRef
+            setMessages(filteredData);
+            messagesRef.current = filteredData;
+
+            // Update graph with latest data
+            setTimeout(() => {
+              updateGraph();
+            }, 200);
+          } catch (error) {
+            console.error("Error fetching latest messages:", error);
+            // Fallback to regular update
+            setTimeout(() => {
+              updateGraph();
+            }, 500);
+          }
           break;
         }
 
@@ -289,7 +538,22 @@ const Chat: React.FC = () => {
               continue;
             }
             console.log("parsedData: ", parsedData);
-            setMessages((prevMessages) => [...prevMessages, parsedData]);
+            setMessages((prevMessages) => {
+              const newMessages = [...prevMessages, parsedData];
+              // Update the ref immediately to ensure graph has latest data
+              messagesRef.current = newMessages;
+              return newMessages;
+            });
+
+            // Trigger immediate graph update for Assistant messages (final outputs)
+            if (parsedData.message_type === MessageType.Assistant) {
+              console.log(
+                "Assistant message received - triggering graph update"
+              );
+              setTimeout(() => {
+                setIsStreaming(false); // This will trigger the useEffect to update immediately
+              }, 100);
+            }
           } catch (error) {
             console.error("Failed to parse JSON:", error);
           }
@@ -306,45 +570,107 @@ const Chat: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col">
-      <main className="grid flex-1 gap-4 overflow-auto p-4 md:grid-cols-2 lg:grid-cols-3">
-        <div
-          className="relative hidden flex-col items-start gap-8 md:flex"
-          x-chunk="dashboard-03-chunk-0"
-        >
-          <ReactFlow nodes={nodes} edges={edges}>
-            <Background />
-          </ReactFlow>
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <main className="grid flex-1 gap-6 overflow-auto p-6 lg:grid-cols-2">
+        {/* Enhanced Graph Section */}
+        <div className="relative flex flex-col bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
+          <div className="p-4 border-b border-slate-200/50">
+            <h2 className="text-lg font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              Conversation Flow
+              {isStreaming && (
+                <span className="ml-2 text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full">
+                  Updating...
+                </span>
+              )}
+            </h2>
+            <p className="text-sm text-slate-600 mt-1">
+              Real-time visualization of your AI interaction ({nodes.length}{" "}
+              nodes, {edges.length} edges)
+            </p>
+          </div>
+          <div className="flex-1 min-h-[400px]">
+            {nodes.length > 0 ? (
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                className="elegant-flow"
+                onInit={setReactFlowInstance}
+                defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+                attributionPosition="bottom-left"
+                fitView={false}
+                nodesDraggable={false}
+                nodesConnectable={false}
+                elementsSelectable={true}
+              >
+                <Background
+                  variant={"dots" as any}
+                  gap={20}
+                  size={1}
+                  color="#e2e8f0"
+                  style={{ opacity: 0.3 }}
+                />
+                <MiniMap
+                  nodeStrokeWidth={0}
+                  nodeStrokeColor="transparent"
+                  zoomable
+                  pannable
+                  style={{
+                    background: "rgba(248, 250, 252, 0.9)",
+                    border: "1px solid rgba(226, 232, 240, 0.5)",
+                    borderRadius: "8px",
+                    backdropFilter: "blur(4px)",
+                  }}
+                />
+                <Controls
+                  style={{
+                    background: "rgba(255, 255, 255, 0.9)",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "8px",
+                    backdropFilter: "blur(4px)",
+                  }}
+                />
+              </ReactFlow>
+            ) : (
+              <div className="flex items-center justify-center h-full text-slate-500">
+                <div className="text-center">
+                  <div className="text-lg font-medium">
+                    Loading conversation flow...
+                  </div>
+                  <div className="text-sm mt-2">
+                    Graph will appear as messages load
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-        <div className="relative flex max-h-[90vh] min-h-[50vh] flex-col rounded-xl bg-muted/50 p-4 lg:col-span-2">
-          <div className="flex-1 pb-12 pr-2 overflow-auto">
+
+        {/* Chat Section */}
+        <div className="relative flex max-h-[90vh] min-h-[50vh] flex-col chat-container p-6 bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50">
+          <div className="flex-1 pb-12 pr-2 overflow-auto space-y-2">
             {messages.map((message, index) => (
               <div
                 key={index}
-                className={`grid gap-2 msg-outer-div msg-outer-div-${message.message_type}`}
+                className={`msg-outer-div msg-outer-div-${message.message_type}`}
               >
-                <div
-                  className={`grid gap-2 msg-container-${message.message_type}`}
-                >
+                <div className={`msg-container-${message.message_type}`}>
                   <>{renderMessageContent(message)}</>
                 </div>
               </div>
             ))}
             {notifier && (
-              <div
-                className="p-2 pr-6 rounded-lg ml-2 mt-4 flex-row items-center 
-                inline-flex"
-              >
-                {" "}
-                <img src={processGif} width="53px" />
-                <div className="pl-4"> {notifier} </div>
+              <div className="processing-indicator">
+                <div className="flex items-center gap-4">
+                  <img src={processGif} width="48px" className="rounded-lg" />
+                  <div className="font-medium text-orange-800">{notifier}</div>
+                </div>
               </div>
             )}
             <div ref={messageEndRef} />
           </div>
 
           <form
-            className="relative overflow-hidden rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring"
+            className="chat-input-form relative overflow-hidden focus-within:ring-1 focus-within:ring-ring"
             x-chunk="dashboard-03-chunk-1"
             onSubmit={submitMessage}
           >

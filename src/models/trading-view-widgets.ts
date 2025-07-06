@@ -6,6 +6,13 @@ export enum TradingViewWidgetType {
   TickersSlider = "TickersSlider",
 }
 
+export enum WidgetSize {
+  Small = "small", // 1 column
+  Medium = "medium", // 2 columns
+  Large = "large", // 3 columns
+  XLarge = "xlarge", // 4 columns (full width on some screens)
+}
+
 export interface AdvRTChartProps {
   symbol: string;
 }
@@ -27,12 +34,21 @@ export interface SymbolOverviewChartProps {
 export interface TradingViewWidget {
   id: number;
   widget: TradingViewWidgetType;
-  props: AdvRTChartProps | MarketDataList | SymbolOverviewChartProps;
+  props:
+    | AdvRTChartProps
+    | MarketDataList
+    | SymbolOverviewChartProps
+    | string
+    | string[]
+    | Ticker[]
+    | MarketDataGroup[];
+  size?: WidgetSize; // Optional size override
 }
 
 export interface TradingViewWidgetComonent {
   id: number;
   component: JSX.Element;
+  size: WidgetSize;
 }
 
 /**
