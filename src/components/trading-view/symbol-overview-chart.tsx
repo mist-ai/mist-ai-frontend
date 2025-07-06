@@ -19,8 +19,8 @@ const SymbolOverviewChart: React.FC<SymbolOverviewChartProps> = (props) => {
         symbols: props.symbols,
         chartOnly: false,
         locale: "en",
-        width: "500",
-        height: "450",
+        width: "100%",
+        height: "100%",
         colorTheme: "light",
         autosize: true,
         showVolume: false,
@@ -56,8 +56,11 @@ const SymbolOverviewChart: React.FC<SymbolOverviewChartProps> = (props) => {
   }, [props.symbols]);
 
   return (
-    <div className="tradingview-widget-container" ref={containerRef}>
-      <div className="tradingview-widget-container__widget"></div>
+    <div
+      className="tradingview-widget-container w-full h-full min-h-[350px]"
+      ref={containerRef}
+    >
+      <div className="tradingview-widget-container__widget w-full h-full"></div>
     </div>
   );
 };

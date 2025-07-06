@@ -12,8 +12,8 @@ const MarketData: React.FC<MarketDataList> = (props) => {
         "https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js";
       script.async = true;
       script.innerHTML = JSON.stringify({
-        width: 800,
-        height: 450,
+        width: "100%",
+        height: "100%",
         symbolsGroups: props.marketData,
         showSymbolLogo: true,
         isTransparent: false,
@@ -33,8 +33,11 @@ const MarketData: React.FC<MarketDataList> = (props) => {
   }, [props.marketData]);
 
   return (
-    <div className="tradingview-widget-container" ref={containerRef}>
-      <div className="tradingview-widget-container__widget"></div>
+    <div
+      className="tradingview-widget-container w-full h-full min-h-[400px]"
+      ref={containerRef}
+    >
+      <div className="tradingview-widget-container__widget w-full h-full"></div>
     </div>
   );
 };
