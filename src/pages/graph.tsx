@@ -8,8 +8,10 @@ import {
   Background,
   MiniMap,
   BackgroundVariant,
+  Controls,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import "./graph.scss";
 import { useEffect, useState } from "react";
 
 const Graph = () => {
@@ -17,6 +19,46 @@ const Graph = () => {
   const [nodes, setNodes] = useState<any[]>([]);
   const [edges, setEdges] = useState<any[]>([]);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+
+  // Helper functions for elegant node styling
+  const getNodeBackground = (nodeType: string) => {
+    switch (nodeType) {
+      case "input":
+        return "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)"; // Emerald gradient
+      case "output":
+        return "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)"; // Indigo gradient
+      case "reasoning":
+        return "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)"; // Amber gradient
+      default:
+        return "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)"; // Slate gradient
+    }
+  };
+
+  const getNodeBorderColor = (nodeType: string) => {
+    switch (nodeType) {
+      case "input":
+        return "#10b981";
+      case "output":
+        return "#6366f1";
+      case "reasoning":
+        return "#f59e0b";
+      default:
+        return "#64748b";
+    }
+  };
+
+  const getNodeShadow = (nodeType: string) => {
+    switch (nodeType) {
+      case "input":
+        return "rgba(16, 185, 129, 0.15)";
+      case "output":
+        return "rgba(99, 102, 241, 0.15)";
+      case "reasoning":
+        return "rgba(245, 158, 11, 0.15)";
+      default:
+        return "rgba(100, 116, 139, 0.15)";
+    }
+  };
 
   useEffect(() => {
     fetchMessages(55).then((data) => {
@@ -88,9 +130,29 @@ const Graph = () => {
 
       return {
         id: (message.date || index.toString()) + "_" + index,
-        data: { label },
+        data: {
+          label,
+          message:
+            (message as any).content ||
+            (message as any).reasoning ||
+            message.message_type,
+          type: message.message_type,
+          timestamp: message.date,
+        },
         position,
         type: nodeType,
+        style: {
+          background: getNodeBackground(nodeType),
+          border: `2px solid ${getNodeBorderColor(nodeType)}`,
+          borderRadius: "12px",
+          padding: "12px 16px",
+          boxShadow: `0 4px 12px ${getNodeShadow(nodeType)}`,
+          color: "#1f2937",
+          fontSize: "13px",
+          fontWeight: "500",
+          minWidth: "200px",
+          maxWidth: "300px",
+        },
       };
     });
 
@@ -102,9 +164,9 @@ const Graph = () => {
 
       // Determine edge style based on node types
       let edgeStyle: any = {
-        stroke: "#e2e8f0",
+        stroke: "#cbd5e1",
         strokeWidth: 2,
-        strokeDasharray: "5,5",
+        strokeDasharray: "8,4",
       };
       let edgeType = "smoothstep";
 
@@ -112,20 +174,23 @@ const Graph = () => {
         edgeStyle = {
           stroke: "#10b981",
           strokeWidth: 3,
-        }; // Modern green
+          strokeOpacity: 0.8,
+        }; // Elegant emerald
       } else if (
         sourceNode.type === "reasoning" &&
         targetNode.type === "output"
       ) {
         edgeStyle = {
-          stroke: "#3b82f6",
+          stroke: "#6366f1",
           strokeWidth: 3,
-        }; // Modern blue
+          strokeOpacity: 0.8,
+        }; // Elegant indigo
       } else if (sourceNode.type === "output" && targetNode.type === "input") {
         edgeStyle = {
           stroke: "#f59e0b",
           strokeWidth: 3,
-        }; // Modern orange
+          strokeOpacity: 0.8,
+        }; // Elegant amber
       }
 
       newEdges.push({
@@ -138,8 +203,8 @@ const Graph = () => {
         markerEnd: {
           type: "arrowclosed",
           color: edgeStyle.stroke,
-          width: 20,
-          height: 20,
+          width: 16,
+          height: 16,
         },
       });
     }
@@ -193,58 +258,73 @@ const Graph = () => {
   };
 
   return (
-    <div className="p-6 bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            MIST.ai Graph
-          </h1>
-          <p className="text-slate-600 mt-1">
-            Visualize your AI conversation flow
-          </p>
+    <div className="p-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              MIST.ai Graph
+            </h1>
+            <p className="text-slate-600 mt-2 text-lg">
+              Visualize your AI conversation flow with elegant precision
+            </p>
+          </div>
+          <div className="flex items-center space-x-6 text-sm text-slate-600">
+            <div className="flex items-center bg-white px-3 py-2 rounded-lg shadow-sm border border-slate-200">
+              <div className="w-3 h-3 rounded-full bg-emerald-500 mr-2 shadow-sm"></div>
+              User Input
+            </div>
+            <div className="flex items-center bg-white px-3 py-2 rounded-lg shadow-sm border border-slate-200">
+              <div className="w-3 h-3 rounded-full bg-amber-500 mr-2 shadow-sm"></div>
+              AI Reasoning
+            </div>
+            <div className="flex items-center bg-white px-3 py-2 rounded-lg shadow-sm border border-slate-200">
+              <div className="w-3 h-3 rounded-full bg-indigo-500 mr-2 shadow-sm"></div>
+              Agent Response
+            </div>
+          </div>
         </div>
-        <div className="flex items-center space-x-4 text-sm text-slate-500">
-          <div className="flex items-center">
-            <div className="w-3 h-3 rounded-full bg-emerald-500 mr-2"></div>
-            User Input
-          </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 rounded-full bg-amber-500 mr-2"></div>
-            AI Reasoning
-          </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 rounded-full bg-indigo-500 mr-2"></div>
-            Agent Response
-          </div>
+        <div className="h-[calc(100vh-250px)] bg-white/70 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/50 overflow-hidden">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onInit={setReactFlowInstance}
+            defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+            attributionPosition="bottom-left"
+            className="elegant-flow"
+          >
+            <Background
+              variant={"dots" as any}
+              gap={24}
+              size={1.5}
+              color="#e2e8f0"
+              style={{ opacity: 0.4 }}
+            />
+            <Controls
+              style={{
+                background: "rgba(255, 255, 255, 0.9)",
+                border: "1px solid #e2e8f0",
+                borderRadius: "12px",
+                padding: "8px",
+                backdropFilter: "blur(8px)",
+              }}
+            />
+            <MiniMap
+              nodeColor={nodeColor}
+              nodeStrokeWidth={0}
+              nodeStrokeColor="transparent"
+              zoomable
+              pannable
+              style={{
+                background: "rgba(248, 250, 252, 0.9)",
+                border: "2px solid rgba(226, 232, 240, 0.5)",
+                borderRadius: "12px",
+                backdropFilter: "blur(8px)",
+                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
+              }}
+            />
+          </ReactFlow>
         </div>
-      </div>
-      <div className="h-[calc(100vh-200px)] bg-white rounded-xl shadow-lg border border-slate-200">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onInit={setReactFlowInstance}
-          defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
-          attributionPosition="bottom-left"
-        >
-          <Background
-            variant={"dots" as any}
-            gap={20}
-            size={1}
-            color="#e2e8f0"
-          />
-          <MiniMap
-            nodeColor={nodeColor}
-            nodeStrokeWidth={2}
-            nodeStrokeColor="#ffffff"
-            zoomable
-            pannable
-            style={{
-              backgroundColor: "#f8fafc",
-              border: "2px solid #e2e8f0",
-              borderRadius: "8px",
-            }}
-          />
-        </ReactFlow>
       </div>
     </div>
   );
